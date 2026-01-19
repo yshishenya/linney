@@ -55,131 +55,31 @@ async def get_profiles(
     status: Optional[str] = Query(None, description="Фильтр по статусу"),
     current_user: dict = Depends(get_current_user),
 ):
-    """
-    @doc Получить список профилей с пагинацией и фильтрацией
-
-    Возвращает список всех профилей с поддержкой пагинации, фильтрации по
-    департаменту, должности, статусу и текстового поиска по всем полям.
-
-    **Query Parameters:**
-    - `page` (int): Номер страницы (по умолчанию: 1)
-    - `limit` (int): Количество записей на страницу (1-100, по умолчанию: 20)
-    - `department` (str, optional): Фильтр по названию департамента
-      (поддерживает частичное совпадение)
-    - `position` (str, optional): Фильтр по названию должности
-      (поддерживает частичное совпадение)
-    - `search` (str, optional): Текстовый поиск по имени сотрудника,
-      департаменту и должности
-    - `status` (str, optional): Фильтр по статусу
-      ('completed', 'archived', 'in_progress')
-
-    **Response Model:** ProfileListResponse
-    - `profiles`: Массив профилей с базовой информацией
-    - `pagination`: Метаданные пагинации (общее количество, страницы, навигация)
-    - `filters_applied`: Примененные фильтры
-
-    **Authentication:** Требуется Bearer Token
-
-    Examples:
-        bash>
-        # 1. Получить первую страницу (5 записей на страницу)
-        curl -X GET "http://localhost:8001/api/profiles/?page=1&limit=5" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE" \
-          -H "Content-Type: application/json"
-
-        # Response (200 OK):
-        {
-          "profiles": [
-            {
-              "profile_id": "4aec3e73-c9bd-4d25-a123-456789abcdef",
-              "department": "Группа анализа данных",
-              "position": "Старший аналитик данных",
-              "employee_name": "Иванова Анна Сергеевна",
-              "status": "completed",
-              "validation_score": 0.95,
-              "completeness_score": 0.87,
-              "created_at": "2025-01-10T14:30:22",
-              "created_by_username": "admin",
-              "actions": {
-                "download_json": "/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/json",
-                "download_md": "/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/md",
-                "download_docx": "/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/docx"
-              }
-            }
-          ],
-          "pagination": {
-            "page": 1,
-            "limit": 5,
-            "total": 8,
-            "total_pages": 2,
-            "has_next": true,
-            "has_prev": false
-          },
-          "filters_applied": {
-            "department": null,
-            "position": null,
-            "search": null,
-            "status": null
-          }
-        }
-
-        # 2. Фильтрация по департаменту (URL encoded)
-        curl -X GET "http://localhost:8001/api/profiles/?department=%D0%93%D1%80%D1%83%D0%BF%D0%BF%D0%B0%20%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%20%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE"
-
-        # Note: "Группа анализа данных" должно быть URL encoded
-
-        # Response (200 OK) - только профили из указанного департамента:
-        {
-          "profiles": [
-            {
-              "profile_id": "4aec3e73-c9bd-4d25-a123-456789abcdef",
-              "department": "Группа анализа данных",
-              "position": "Старший аналитик данных",
-              "employee_name": "Иванова Анна Сергеевна",
-              "status": "completed"
-            }
-          ],
-          "pagination": {
-            "page": 1,
-            "limit": 20,
-            "total": 1,
-            "total_pages": 1,
-            "has_next": false,
-            "has_prev": false
-          },
-          "filters_applied": {
-            "department": "Группа анализа данных",
-            "position": null,
-            "search": null,
-            "status": null
-          }
-        }
-
-        # 3. Текстовый поиск (поиск "analyst")
-        curl -X GET "http://localhost:8001/api/profiles/?search=analyst" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE"
-
-        # Response (200 OK) - профили, содержащие "analyst" в названии должности:
-        {
-          "profiles": [
-            {
-              "profile_id": "4aec3e73-c9bd-4d25-a123-456789abcdef",
-              "department": "Группа анализа данных",
-              "position": "Старший аналитик данных",
-              "employee_name": "Иванова Анна Сергеевна"
-            }
-          ],
-          "filters_applied": {
-            "search": "analyst"
-          }
-        }
-
-        # 4. Комбинированный поиск с пагинацией
-        curl -X GET "http://localhost:8001/api/profiles/?page=2&limit=3&status=completed" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE"
-    """
     # Валидация параметров запроса
+    """Retrieve a paginated and filtered list of profiles.
+    
+    This function fetches profiles from the database, applying pagination and
+    various filters such as department, position, status, and a text search across
+    multiple fields. It validates the input parameters, constructs the SQL query
+    dynamically based on the provided filters, and returns the profiles along with
+    pagination metadata and the filters that were applied.
+    
+    Args:
+        page (int): The page number (default: 1).
+        limit (int): The number of records per page (1-100, default: 20).
+        department (Optional[str]): Filter by department name (supports partial matches).
+        position (Optional[str]): Filter by position name (supports partial matches).
+        search (Optional[str]): Text search across employee name, department, and position.
+        status (Optional[str]): Filter by status ('completed', 'archived', 'in_progress').
+        current_user (dict): The current user information, obtained via dependency injection.
+    
+    Returns:
+        dict: A dictionary containing the list of profiles, pagination metadata, and applied
+            filters.
+    
+    Raises:
+        DatabaseError: If there is an error while fetching profiles from the database.
+    """
     page, limit = validate_pagination(page, limit)
     department = validate_optional_string(department, "department", max_length=200)
     position = validate_optional_string(position, "position", max_length=200)
@@ -306,102 +206,18 @@ async def get_profiles(
 
 @router.get("/{profile_id}")
 async def get_profile(profile_id: str, current_user: dict = Depends(get_current_user)):
-    """
-    @doc Получить конкретный профиль по ID
-
-    Возвращает полную информацию о профиле, включая все данные профиля,
-    метаданные генерации и информацию о создателе.
-
-    **Path Parameters:**
-    - `profile_id` (str): UUID профиля
-
-    **Response:** Полный объект профиля с метаданными
-    - `profile_id`: UUID профиля
-    - `profile`: Полные данные профиля в JSON формате
-    - `metadata`: Метаданные генерации (время, токены, модель)
-    - `created_at`: Дата создания
-    - `created_by_username`: Имя создателя
-    - `actions`: Ссылки на действия (скачивание файлов)
-
-    **Authentication:** Требуется Bearer Token
-
-    Examples:
-        bash>
-        # 1. Получить профиль по ID
-        curl -X GET "http://localhost:8001/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE" \
-          -H "Content-Type: application/json"
-
-        # Response (200 OK):
-        {
-          "profile_id": "4aec3e73-c9bd-4d25-a123-456789abcdef",
-          "profile": {
-            "position_info": {
-              "title": "Старший аналитик данных",
-              "department": "Группа анализа данных",
-              "reporting_to": "Руководитель группы анализа данных",
-              "subordinates": [],
-              "employment_type": "full_time"
-            },
-            "responsibilities": [
-              "Проведение глубокого анализа больших объемов данных",
-              "Создание аналитических отчетов и дашбордов",
-              "Разработка прогнозных моделей"
-            ],
-            "qualifications": {
-              "education": "Высшее образование в области математики, статистики или IT",
-              "experience": "От 3 лет опыта работы с данными",
-              "skills": ["Python", "SQL", "Tableau", "Machine Learning"]
-            },
-            "kpis": [
-              {
-                "name": "Точность прогнозных моделей",
-                "target_value": "> 85%",
-                "measurement_frequency": "ежемесячно"
-              }
-            ]
-          },
-          "metadata": {
-            "generation_id": "gen_20250110_143022_abc123",
-            "model_used": "gemini-2.0-flash-exp",
-            "tokens_used": 1250,
-            "generation_time_ms": 3400,
-            "langfuse_trace_id": "trace_abc123def456",
-            "prompt_version": "v2.1"
-          },
-          "created_at": "2025-01-10T14:30:22",
-          "created_by_username": "admin",
-          "actions": {
-            "download_json": "/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/json",
-            "download_md": "/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/md",
-            "download_docx": "/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/docx"
-          }
-        }
-
-        # 2. Ошибка - профиль не найден
-        curl -X GET "http://localhost:8001/api/profiles/nonexistent-profile-id" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE"
-
-        # Response (404 Not Found):
-        {
-          "detail": {
-            "error": "Profile not found",
-            "error_code": "RESOURCE_NOT_FOUND",
-            "resource": "profile",
-            "resource_id": "nonexistent-profile-id"
-          }
-        }
-
-        # 3. Ошибка авторизации
-        curl -X GET "http://localhost:8001/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef" \
-          -H "Authorization: Bearer invalid-token"
-
-        # Response (401 Unauthorized):
-        {
-          "detail": "Invalid authentication token"
-        }
-    """
     # Валидация profile_id
+    """Retrieve a specific profile by its ID.
+    
+    This function validates the provided `profile_id`, retrieves the corresponding
+    profile information from the database, and returns a complete profile object
+    including metadata and creator information. It handles potential errors related
+    to JSON decoding and database access, ensuring that appropriate exceptions are
+    raised for issues encountered during the process.
+    
+    Args:
+        profile_id (str): UUID профиля.
+    """
     profile_id = validate_profile_id(profile_id)
 
     try:
@@ -1050,67 +866,27 @@ async def download_profile_json(
 async def download_profile_docx(
     profile_id: str, current_user: dict = Depends(get_current_user)
 ):
-    """
-    @doc Скачать DOCX файл профиля
-
-    Скачивает профиль в формате Microsoft Word (DOCX) из файловой системы.
-    DOCX файл содержит профессионально отформатированный профиль готовый
-    для редактирования и корпоративного документооборота.
-
-    **Path Parameters:**
-    - `profile_id` (str): UUID профиля для скачивания
-
-    **Response:** Файл Microsoft Word для скачивания
-    - Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
-    - Content-Disposition: attachment
-    - Имя файла: profile_{position}_{profile_id_short}.docx
-
-    **Authentication:** Требуется Bearer Token
-
-    **File Location Logic:**
-    - DOCX файлы хранятся рядом с JSON в /generated_profiles/{department}/
-    - Путь вычисляется детерминистично по profile_id + created_at
-    - Имя файла: {position}_{timestamp}.docx
-
-    **DOCX Content Features:**
-    - Корпоративные стили A101 (синий цвет, структурированные таблицы)
-    - Профессиональные таблицы для навыков, KPI, инструментов
-    - Заголовки с иконками и правильным форматированием
-    - Метаданные генерации в подвале документа
-    - Готовый для редактирования и печати формат
-
-    **Error Cases:**
-    - 404: Профиль не найден в базе данных
-    - 404: DOCX файл не найден в файловой системе
-    - 401: Невалидный токен авторизации
-
-    Examples:
-        bash>
-        # 1. Успешное скачивание DOCX файла
-        curl -X GET "http://localhost:8001/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/docx" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-          --output "profile.docx"
-
-        # Response (200 OK): Скачивание файла начнется автоматически
-        # Headers:
-        # Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
-        # Content-Disposition: attachment; filename="profile_Старший_аналитик_данных_4aec3e73.docx"
-
-        # 2. Ошибка - файл не найден (профиль существует, но DOCX файл удален)
-        curl -X GET "http://localhost:8001/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/docx" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-
-        # Response (404 Not Found):
-        {
-          "detail": {
-            "error": "Profile DOCX file not found at /generated_profiles/Группа_анализа_данных/Старший_аналитик_данных_20250110_143022.docx",
-            "error_code": "RESOURCE_NOT_FOUND",
-            "resource": "file",
-            "resource_id": "/generated_profiles/Группа_анализа_данных/Старший_аналитик_данных_20250110_143022.docx"
-          }
-        }
-    """
     # Валидация profile_id
+    """Download a DOCX file of a user profile.
+    
+    This function retrieves a Microsoft Word (DOCX) file containing a
+    professionally formatted profile from the file system. The DOCX file  is
+    generated based on the profile's UUID and includes corporate styles,
+    structured tables, and metadata. The file path is determined  deterministically
+    using the profile_id and created_at timestamp.  It also handles various error
+    cases, including profile and file not found.
+    
+    Args:
+        profile_id (str): UUID профиля для скачивания.
+        current_user (dict?): The current user, obtained via
+            dependency injection.
+            
+            **Authentication:** Requires Bearer Token.
+            **File Location Logic:** DOCX files are stored alongside JSON in
+            /generated_profiles/{department}/.
+            **Error Cases:** Handles 404 for profile or file not found,
+            and 401 for invalid authorization token.
+    """
     profile_id = validate_profile_id(profile_id)
 
     try:
@@ -1178,113 +954,19 @@ async def download_profile_docx(
 async def download_profile_md(
     profile_id: str, current_user: dict = Depends(get_current_user)
 ):
-    """
-    @doc Скачать MD файл профиля
-
-    Скачивает профиль в Markdown формате для удобного чтения и печати.
-    MD файл содержит человекочитаемое описание профиля с форматированием.
-
-    **Path Parameters:**
-    - `profile_id` (str): UUID профиля для скачивания
-
-    **Response:** Файл Markdown для скачивания
-    - Content-Type: text/markdown
-    - Content-Disposition: attachment
-    - Имя файла: profile_{position}_{profile_id_short}.md
-
-    **Authentication:** Требуется Bearer Token
-
-    **File Location Logic:**
-    - MD файлы хранятся рядом с JSON в /generated_profiles/{department}/
-    - Путь вычисляется детерминистично по profile_id + created_at
-    - Имя файла: {position}_{timestamp}.md
-
-    **Markdown Content Structure:**
-    - Заголовок с названием должности
-    - Общая информация (департамент, подчинение)
-    - Обязанности (маркированный список)
-    - Квалификация и навыки
-    - KPI и метрики (таблица)
-    - Метаданные генерации
-
-    **Error Cases:**
-    - 404: Профиль не найден в базе данных
-    - 404: MD файл не найден в файловой системе
-    - 401: Невалидный токен авторизации
-
-    Examples:
-        bash>
-        # 1. Успешное скачивание MD файла
-        curl -X GET "http://localhost:8001/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/md" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE" \
-          --output "profile_analyst.md"
-
-        # Response (200 OK): Скачивание файла начнется автоматически
-        # Headers:
-        # Content-Type: text/markdown
-        # Content-Disposition: attachment; filename="profile_Старший_аналитик_данных_4aec3e73.md"
-        # Content-Length: 8240
-
-        # File content: Профиль в Markdown с красивым форматированием
-
-        # 2. Просмотр содержимого файла в терминале
-        curl -X GET "http://localhost:8001/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/md" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE" \
-          --silent | head -20
-
-        # Output: Первые 20 строк MD файла
-        # # Старший аналитик данных
-        #
-        # ## Общая информация
-        # - **Департамент:** Группа анализа данных
-        # - **Подчиняется:** Руководитель группы
-
-        # 3. Ошибка - файл не найден (профиль существует, но MD файл удален)
-        curl -X GET "http://localhost:8001/api/profiles/4aec3e73-c9bd-4d25-a123-456789abcdef/download/md" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE"
-
-        # Response (404 Not Found):
-        {
-          "detail": {
-            "error": "Profile MD file not found at /generated_profiles/Группа_анализа_данных/Старший_аналитик_данных_20250110_143022.md",
-            "error_code": "RESOURCE_NOT_FOUND",
-            "resource": "file",
-            "resource_id": "/generated_profiles/Группа_анализа_данных/Старший_аналитик_данных_20250110_143022.md"
-          }
-        }
-
-        # 4. Ошибка - профиль не найден
-        curl -X GET "http://localhost:8001/api/profiles/nonexistent-profile-id/download/md" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE"
-
-        # Response (404 Not Found):
-        {
-          "detail": {
-            "error": "Profile not found",
-            "error_code": "RESOURCE_NOT_FOUND",
-            "resource": "profile",
-            "resource_id": "nonexistent-profile-id"
-          }
-        }
-
-        # 5. Комбинированное скачивание обоих форматов
-        PROFILE_ID="4aec3e73-c9bd-4d25-a123-456789abcdef"
-        AUTH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMTA5Mzc5N30.K8FgXOaVtDyVQs-wc2D8UgPMqGwNb_-pE3YKwN9TjeE"
-
-        # Скачивание JSON
-        curl -X GET "http://localhost:8001/api/profiles/${PROFILE_ID}/download/json" \
-          -H "Authorization: Bearer ${AUTH_TOKEN}" \
-          --output "profile_data.json" --silent
-
-        # Скачивание MD
-        curl -X GET "http://localhost:8001/api/profiles/${PROFILE_ID}/download/md" \
-          -H "Authorization: Bearer ${AUTH_TOKEN}" \
-          --output "profile_readable.md" --silent
-
-        echo "Downloaded both formats:"
-        ls -la profile_*
-    """
     # Валидация profile_id
+    """Download a Markdown file of a user profile.
+    
+    This function retrieves a user profile in Markdown format for easy reading and
+    printing.  It validates the `profile_id`, fetches the profile information from
+    the database,  and constructs the file path deterministically based on the
+    profile's creation date.  If the file exists, it is returned for download;
+    otherwise, appropriate errors are raised.
+    
+    Args:
+        profile_id (str): UUID профиля для скачивания.
+        current_user (dict): The current user, obtained via dependency injection.
+    """
     profile_id = validate_profile_id(profile_id)
 
     try:

@@ -43,15 +43,23 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         self.auth_service = auth_service
 
     async def dispatch(self, request: Request, call_next):
-        """
-        @doc Логирование запроса и ответа с детальными метриками
 
-        Examples:
-            python>
-            # Автоматически логирует каждый HTTP запрос
-            # Включает IP, user agent, время выполнения, статус код
+        """Log request and response with detailed metrics.
+        
+        This asynchronous function logs incoming HTTP requests, including method, path,
+        client IP, and user agent. It attempts to extract user information from the
+        Authorization header if present. After processing the request, it logs the
+        response status and execution time, adding relevant headers to the response. In
+        case of an error, it logs the error details and returns a structured error
+        response.
+        
+        Args:
+            request (Request): The incoming HTTP request object.
+            call_next: A callable to process the request and get the response.
+        
+        Returns:
+            Response: The HTTP response object after processing the request.
         """
-
         start_time = time.time()
 
         # Информация о запросе

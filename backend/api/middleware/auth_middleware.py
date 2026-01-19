@@ -51,16 +51,21 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         self.auth_service = auth_service
 
     async def dispatch(self, request: Request, call_next):
-        """
-        @doc Обработка запроса с проверкой авторизации
-
-        Examples:
-            python>
-            # Middleware автоматически вызывается для каждого запроса
-            # Проверяет Authorization header и валидирует JWT токен
-        """
 
         # Проверяем, нужна ли авторизация для этого пути
+        """Handle request with authorization check.
+        
+        This function processes incoming requests by checking if authorization is
+        required for the requested path.  It allows unauthenticated access to exempt
+        paths and static resources. If authorization is needed, it  extracts the Bearer
+        token from the Authorization header, verifies it using the auth_service, and
+        adds  user information to the request state. If any checks fail, appropriate
+        JSON responses are returned.
+        
+        Args:
+            request (Request): The incoming request object.
+            call_next: A callable to process the request further.
+        """
         path = request.url.path
 
         # Пропускаем неавторизованные пути

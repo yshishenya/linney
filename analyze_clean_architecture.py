@@ -35,7 +35,14 @@ class CleanArchitectureAnalyzer:
         self.violations = []
         
     def analyze_file(self, file_path: Path) -> Tuple[str, List[str]]:
-        """Analyze a single Python file for its imports"""
+        """Analyze a single Python file for its imports.
+        
+        This function reads the content of a specified Python file and determines  its
+        layer based on its relative path to the backend root. It then extracts  any
+        import statements that match predefined patterns, returning the layer  and a
+        list of valid imports found within the file. If the file cannot be  read or
+        does not belong to any known layer, appropriate defaults are returned.
+        """
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -71,7 +78,14 @@ class CleanArchitectureAnalyzer:
         return layer, imports
         
     def analyze_dependencies(self):
-        """Analyze all Python files for dependencies"""
+        """Analyze all Python files for dependencies.
+        
+        This function traverses the directory specified by self.backend_root to find
+        all Python files. For each file, it analyzes the imports and updates the
+        dependencies and reverse dependencies accordingly. It also checks for
+        violations where a higher layer depends on a lower layer, recording any such
+        instances for further review.
+        """
         print("🔍 Analyzing dependencies...")
         
         for py_file in self.backend_root.rglob("*.py"):
@@ -100,7 +114,18 @@ class CleanArchitectureAnalyzer:
                     })
     
     def check_single_responsibility(self) -> List[Dict]:
-        """Check Single Responsibility Principle violations"""
+        """Check for Single Responsibility Principle violations.
+        
+        This function scans Python files in the backend_root directory to identify
+        modules that exceed 500 lines of code, which may indicate a violation of the
+        Single Responsibility Principle. For each file that is too large, it records
+        the file path, the line count, and categorizes the issue as a medium severity
+        violation. The function ignores files in the __pycache__ directory and handles
+        any file read errors gracefully.
+        
+        Returns:
+            List[Dict]: A list of dictionaries containing details of the violations found.
+        """
         violations = []
         
         # Check for modules that are too large (> 500 lines)
@@ -125,7 +150,18 @@ class CleanArchitectureAnalyzer:
         return violations
     
     def check_interface_segregation(self) -> List[Dict]:
-        """Check Interface Segregation Principle compliance"""
+        """Check for compliance with the Interface Segregation Principle.
+        
+        This function verifies the presence of the interfaces.py file in the core layer
+        and checks the usage of the AuthInterface across Python files in the backend
+        root.  If the interfaces.py file is missing, it records a violation. It also
+        counts the  occurrences of AuthInterface usage and flags it as underused if it
+        appears less  than twice, indicating a potential violation of the Interface
+        Segregation Principle.
+        
+        Args:
+            self: The instance of the class containing the method.
+        """
         violations = []
         
         interfaces_file = self.backend_root / "core" / "interfaces.py"
@@ -164,9 +200,20 @@ class CleanArchitectureAnalyzer:
         return violations
     
     def generate_report(self) -> Dict:
-        """Generate comprehensive Clean Architecture compliance report"""
         
         # Analyze dependencies
+        """Generate a comprehensive Clean Architecture compliance report.
+        
+        This function analyzes dependencies and checks for violations of the Single
+        Responsibility Principle and Interface Segregation Principle. It combines all
+        identified violations, calculates a compliance score based on the severity of
+        these violations, and compiles a detailed report that includes layer structure,
+        dependency analysis, and recommendations for improvement.
+        
+        Returns:
+            Dict: A report containing the compliance score, layer structure, dependency analysis,
+                total violations, and recommendations.
+        """
         self.analyze_dependencies()
         
         # Check additional principles
@@ -215,7 +262,21 @@ class CleanArchitectureAnalyzer:
         return report
     
     def generate_recommendations(self, violations: List[Dict]) -> List[str]:
-        """Generate actionable recommendations based on violations"""
+        """Generate actionable recommendations based on violations.
+        
+        This function analyzes a list of violations and generates specific
+        recommendations based on their severity and type. It checks for high severity
+        violations, the number of single responsibility violations, and interface
+        segregation violations to provide tailored advice. If no violations are
+        present, it acknowledges excellent compliance with Clean Architecture
+        principles.
+        
+        Args:
+            violations (List[Dict]): A list of violation dictionaries containing severity and violation type.
+        
+        Returns:
+            List[str]: A list of actionable recommendations based on the provided violations.
+        """
         recommendations = []
         
         high_violations = [v for v in violations if v.get('severity') == 'high']
@@ -236,6 +297,14 @@ class CleanArchitectureAnalyzer:
         return recommendations
 
 def main():
+    """Execute the main analysis and reporting for Clean Architecture compliance.
+    
+    This function initializes a CleanArchitectureAnalyzer with a specified
+    directory, generates a compliance report, and prints various metrics related to
+    architecture compliance. It evaluates the overall compliance score, layer
+    structure, dependency analysis, and violations summary, providing detailed
+    insights and recommendations based on the analysis results.
+    """
     analyzer = CleanArchitectureAnalyzer("/home/yan/A101/HR")
     report = analyzer.generate_report()
     

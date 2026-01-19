@@ -29,19 +29,12 @@ class AuthInterface(Protocol):
     """
     
     def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
-        """
-        @doc Проверка JWT токена
+        """Verify the validity of a JWT token.
         
         Args:
-            token: JWT токен для проверки
-            
+            token: JWT token to verify.
+        
         Returns:
-            Данные пользователя если токен валидный, None если нет
-            
-        Examples:
-            python>
-            user_data = auth_service.verify_token("jwt.token.here")
-            if user_data:
-                print(f"User: {user_data['username']}")
+            User data if the token is valid, None if not.
         """
         ...
