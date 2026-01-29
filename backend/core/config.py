@@ -46,6 +46,7 @@ class Config:
     PROJECT_ROOT: Path = Path(__file__).parent.parent.parent
 
     # Templates directory для промптов
+    # NOTE: keep as absolute path by default to avoid cwd-related bugs.
     TEMPLATES_DIR: str = os.getenv("TEMPLATES_DIR", str(PROJECT_ROOT / "templates"))
 
     # =============================================================================
@@ -159,7 +160,6 @@ class Config:
     # =============================================================================
 
     DATA_DIR: str = os.getenv("DATA_DIR", "data")
-    TEMPLATES_DIR: str = os.getenv("TEMPLATES_DIR", "templates")
     GENERATED_PROFILES_DIR: str = os.getenv(
         "GENERATED_PROFILES_DIR", "generated_profiles"
     )

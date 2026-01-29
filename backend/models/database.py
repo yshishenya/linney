@@ -92,8 +92,11 @@ class DatabaseManager:
             if hasattr(self._local, "connection") and self._local.connection:
                 try:
                     self._local.connection.close()
-                except:
-                    pass  # Ignore errors when closing dead connection
+                except Exception as e:
+                    # Ignore errors when closing dead connection, but keep trace for debugging.
+                    logger.debug(
+                        "Failed to close previous SQLite connection", exc_info=e
+                    )
 
             # Create new connection for this thread
             # NOTE: check_same_thread=True (default) is now safe because each thread has its own connection
@@ -397,13 +400,13 @@ class DatabaseManager:
 
     def seed_initial_data(
         self,
-        admin_username: str = None,
-        admin_password: str = None,
+        admin_username: Optional[str] = None,
+        admin_password: Optional[str] = None,
         admin_full_name: str = "System Administrator",
-        hr_username: str = None,
-        hr_password: str = None,
+        hr_username: Optional[str] = None,
+        hr_password: Optional[str] = None,
         hr_full_name: str = "HR Manager",
-    ):
+    ) -> None:
         """
         Создание начальных данных для системы с dependency injection параметров.
 
@@ -524,16 +527,17 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     print("🗄️ Создание схемы базы данных...")
-    db_manager.create_schema()
+    db = DatabaseManager("data/profiles.db")
+    db.create_schema()
 
     print("🌱 Создание начальных данных...")
-    db_manager.seed_initial_data()
+    db.seed_initial_data()
 
     print("✅ База данных готова к использованию!")
-    print(f"📍 Путь к БД: {db_manager.db_path}")
+    print(f"📍 Путь к БД: {db.db_path}")
 
     # Проверим созданные таблицы
-    conn = db_manager.get_connection()
+    conn = db.get_connection()
     cursor = conn.cursor()
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
@@ -545,4 +549,4 @@ if __name__ == "__main__":
         count = cursor.fetchone()[0]
         print(f"  - {table[0]}: {count} записей")
 
-    db_manager.close_connection()
+    db.close_connection()

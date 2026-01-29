@@ -15,6 +15,8 @@ import logging
 import sqlite3
 from datetime import datetime
 
+import anyio
+
 from ..models.database import get_db_manager
 from ..core.config import config
 from ..api.auth import get_current_user
@@ -121,12 +123,14 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
             total_positions += len(positions)
 
         # 2. Получаем количество профилей (одним SQL запросом)
-        conn = get_db_manager().get_connection()
-        cursor = conn.cursor()
+        def _count_profiles_sync() -> int:
+            conn = get_db_manager().get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM profiles")
+            result = cursor.fetchone()
+            return int(result[0]) if result else 0
 
-        cursor.execute("SELECT COUNT(*) FROM profiles")
-        profiles_count_result = cursor.fetchone()
-        profiles_count = profiles_count_result[0] if profiles_count_result else 0
+        profiles_count = await anyio.to_thread.run_sync(_count_profiles_sync)
 
         # 3. Получаем активные задачи (заглушка - TODO: реализовать когда будет готов generation manager)
         active_tasks = []
@@ -268,10 +272,14 @@ async def get_minimal_stats(current_user: dict = Depends(get_current_user)):
         total_positions = sum(dept["positions_count"] for dept in departments)
 
         # Быстрый подсчет профилей
-        conn = get_db_manager().get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM profiles")
-        profiles_count = cursor.fetchone()[0]
+        def _count_profiles_sync() -> int:
+            conn = get_db_manager().get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM profiles")
+            result = cursor.fetchone()
+            return int(result[0]) if result else 0
+
+        profiles_count = await anyio.to_thread.run_sync(_count_profiles_sync)
 
         # Подсчет активных задач (заглушка)
         active_tasks_count = 0
@@ -393,32 +401,35 @@ async def get_activity_stats(current_user: dict = Depends(get_current_user)):
         #     active_tasks = []
 
         # 2. Недавние профили (последние 10)
-        conn = get_db_manager().get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
+        def _get_recent_profiles_sync() -> list[dict[str, Any]]:
+            conn = get_db_manager().get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT p.department, p.position, p.employee_name, p.created_at, p.status,
+                       u.username as created_by
+                FROM profiles p
+                LEFT JOIN users u ON p.created_by = u.id
+                ORDER BY p.created_at DESC
+                LIMIT 10
             """
-            SELECT p.department, p.position, p.employee_name, p.created_at, p.status,
-                   u.username as created_by
-            FROM profiles p
-            LEFT JOIN users u ON p.created_by = u.id
-            ORDER BY p.created_at DESC
-            LIMIT 10
-        """
-        )
-
-        recent_profiles = []
-        for row in cursor.fetchall():
-            recent_profiles.append(
-                {
-                    "department": row["department"],
-                    "position": row["position"],
-                    "employee_name": row["employee_name"],
-                    "created_at": row["created_at"],
-                    "status": row["status"],
-                    "created_by": row["created_by"],
-                }
             )
+
+            recent = []
+            for row in cursor.fetchall():
+                recent.append(
+                    {
+                        "department": row["department"],
+                        "position": row["position"],
+                        "employee_name": row["employee_name"],
+                        "created_at": row["created_at"],
+                        "status": row["status"],
+                        "created_by": row["created_by"],
+                    }
+                )
+            return recent
+
+        recent_profiles = await anyio.to_thread.run_sync(_get_recent_profiles_sync)
 
         response = {
             "success": True,

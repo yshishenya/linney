@@ -68,7 +68,8 @@ def test_authentication():
             try:
                 error_data = response.json()
                 print(f"Ошибка: {json.dumps(error_data, indent=2, ensure_ascii=False)}")
-            except:
+            except ValueError as e:
+                print(f"Failed to parse error JSON: {e}")
                 print(f"Response text: {response.text}")
             return False
 

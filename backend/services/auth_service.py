@@ -13,6 +13,8 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
+import anyio
+
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
@@ -459,8 +461,8 @@ class AuthenticationService(AuthInterface):
         """Полный процесс авторизации пользователя"""
         try:
             # Аутентификация
-            user = self.authenticate_user(
-                login_request.username, login_request.password
+            user = await anyio.to_thread.run_sync(
+                self.authenticate_user, login_request.username, login_request.password
             )
             if not user:
                 return None
@@ -478,7 +480,9 @@ class AuthenticationService(AuthInterface):
             )
 
             # Создание сессии
-            session_id = self.create_user_session(user["id"], user_agent, ip_address)
+            session_id = await anyio.to_thread.run_sync(
+                self.create_user_session, user["id"], user_agent, ip_address
+            )
 
             # Подготовка ответа
             user_info = UserInfo(

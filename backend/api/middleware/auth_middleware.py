@@ -10,11 +10,13 @@ Examples:
     # Автоматически проверяет JWT токены для защищенных endpoints
 """
 
-from fastapi import Request, HTTPException, status
+from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime
 import logging
+
+import anyio
 
 from ...core.interfaces import AuthInterface
 
@@ -101,7 +103,8 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-        user_data = self.auth_service.verify_token(token)
+        # verify_token performs synchronous DB work (SQLite) -> run in threadpool
+        user_data = await anyio.to_thread.run_sync(self.auth_service.verify_token, token)
 
         if not user_data:
             return JSONResponse(

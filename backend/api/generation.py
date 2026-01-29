@@ -8,6 +8,7 @@ API endpoints для асинхронной генерации профилей 
 4. DELETE /api/generation/{task_id} - отмена задачи
 """
 
+import asyncio
 import uuid
 import logging
 import json
@@ -15,6 +16,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel, Field
+
+import anyio
 
 from ..core.config import config
 from ..core.profile_generator import ProfileGenerator
@@ -68,6 +71,9 @@ class TaskStatusResponse(BaseModel):
 # In-memory storage для задач (в продакшене использовать Redis)
 _active_tasks: Dict[str, Dict[str, Any]] = {}
 _task_results: Dict[str, Dict[str, Any]] = {}
+_task_handles: Dict[str, asyncio.Task[None]] = {}
+
+_tasks_lock = asyncio.Lock()
 
 
 async def get_profile_generator() -> ProfileGenerator:
@@ -89,33 +95,47 @@ async def background_generate_profile(
 ):
     """Background task для генерации профиля"""
 
-    # Обновляем статус на "processing"
-    _active_tasks[task_id].update(
-        {
-            "status": "processing",
-            "started_at": datetime.now(),
-            "current_step": "Инициализация генератора профилей",
-            "progress": 5,
-        }
-    )
+    async with _tasks_lock:
+        if task_id not in _active_tasks:
+            return
+
+        # Обновляем статус на "processing"
+        _active_tasks[task_id].update(
+            {
+                "status": "processing",
+                "started_at": datetime.now(),
+                "current_step": "Инициализация генератора профилей",
+                "progress": 5,
+            }
+        )
 
     try:
+        async with _tasks_lock:
+            if _active_tasks.get(task_id, {}).get("status") == "cancelled":
+                raise asyncio.CancelledError()
+
         # Получаем генератор
         generator = await get_profile_generator()
 
         # Обновляем прогресс
-        _active_tasks[task_id].update(
-            {"current_step": "Подготовка данных компании", "progress": 15}
-        )
+        async with _tasks_lock:
+            if _active_tasks.get(task_id, {}).get("status") == "cancelled":
+                raise asyncio.CancelledError()
+            _active_tasks[task_id].update(
+                {"current_step": "Подготовка данных компании", "progress": 15}
+            )
 
         # Валидация системы
         validation_result = await generator.validate_system()
         if not validation_result["system_ready"]:
             raise Exception(f"Система не готова: {validation_result['errors']}")
 
-        _active_tasks[task_id].update(
-            {"current_step": "Генерация профиля через LLM", "progress": 30}
-        )
+        async with _tasks_lock:
+            if _active_tasks.get(task_id, {}).get("status") == "cancelled":
+                raise asyncio.CancelledError()
+            _active_tasks[task_id].update(
+                {"current_step": "Генерация профиля через LLM", "progress": 30}
+            )
 
         # Создаем profile_id заранее
         profile_id = str(uuid.uuid4())
@@ -130,57 +150,81 @@ async def background_generate_profile(
             profile_id=profile_id,  # Передаем UUID в генератор
         )
 
-        _active_tasks[task_id].update(
-            {"current_step": "Сохранение результата", "progress": 90}
-        )
+        async with _tasks_lock:
+            if _active_tasks.get(task_id, {}).get("status") == "cancelled":
+                raise asyncio.CancelledError()
+            _active_tasks[task_id].update(
+                {"current_step": "Сохранение результата", "progress": 90}
+            )
 
         # Сохраняем в БД с уже известным profile_id
         if result["success"]:
             await save_generation_to_db(result, user_id, task_id, profile_id)
 
-        # Завершаем задачу
-        _active_tasks[task_id].update(
-            {
-                "status": "completed" if result["success"] else "failed",
-                "completed_at": datetime.now(),
-                "current_step": "Завершено",
-                "progress": 100,
-                "error_message": (
-                    "; ".join(result.get("errors", []))
-                    if not result["success"]
-                    else None
-                ),
-            }
-        )
+        async with _tasks_lock:
+            if task_id in _active_tasks:
+                # Завершаем задачу
+                _active_tasks[task_id].update(
+                    {
+                        "status": "completed" if result["success"] else "failed",
+                        "completed_at": datetime.now(),
+                        "current_step": "Завершено",
+                        "progress": 100,
+                        "error_message": (
+                            "; ".join(result.get("errors", []))
+                            if not result["success"]
+                            else None
+                        ),
+                    }
+                )
 
-        # Сохраняем результат
-        _task_results[task_id] = result
+            # Сохраняем результат
+            _task_results[task_id] = result
 
         logger.info(f"✅ Generation task {task_id} completed successfully")
+
+    except asyncio.CancelledError:
+        logger.info(f"🛑 Generation task {task_id} cancelled")
+        async with _tasks_lock:
+            if task_id in _active_tasks:
+                _active_tasks[task_id].update(
+                    {
+                        "status": "cancelled",
+                        "completed_at": datetime.now(),
+                        "current_step": "Отменено пользователем",
+                        "progress": 0,
+                        "error_message": "Задача отменена пользователем",
+                    }
+                )
+        return
 
     except Exception as e:
         logger.error(f"❌ Generation task {task_id} failed: {e}")
 
-        _active_tasks[task_id].update(
-            {
-                "status": "failed",
-                "completed_at": datetime.now(),
-                "current_step": "Ошибка генерации",
-                "progress": 0,
-                "error_message": str(e),
-            }
-        )
+        async with _tasks_lock:
+            if task_id in _active_tasks:
+                _active_tasks[task_id].update(
+                    {
+                        "status": "failed",
+                        "completed_at": datetime.now(),
+                        "current_step": "Ошибка генерации",
+                        "progress": 0,
+                        "error_message": str(e),
+                    }
+                )
+    finally:
+        async with _tasks_lock:
+            _task_handles.pop(task_id, None)
 
 
 async def save_generation_to_db(
     result: Dict[str, Any], user_id: int, task_id: str, profile_id: str
 ):
     """Сохранение результата генерации в базу данных"""
-    try:
+    def _save_sync() -> None:
         conn = get_db_manager().get_connection()
         cursor = conn.cursor()
 
-        # Сохраняем профиль с правильной схемой
         cursor.execute(
             """
             INSERT INTO profiles (
@@ -211,10 +255,10 @@ async def save_generation_to_db(
         )
 
         conn.commit()
-        conn.close()
 
+    try:
+        await anyio.to_thread.run_sync(_save_sync)
         logger.info(f"💾 Saved generation result to database: profile_id={profile_id}")
-
     except Exception as e:
         logger.error(f"❌ Failed to save generation to DB: {e}")
 
@@ -262,23 +306,25 @@ async def start_generation(
     estimated_duration = 45
 
     # Регистрируем задачу
-    _active_tasks[task_id] = {
-        "task_id": task_id,
-        "status": "queued",
-        "progress": 0,
-        "created_at": datetime.now(),
-        "started_at": None,
-        "completed_at": None,
-        "estimated_duration": estimated_duration,
-        "current_step": "В очереди на обработку",
-        "request": request.dict(),
-        "user_id": current_user["user_id"],
-    }
+    async with _tasks_lock:
+        _active_tasks[task_id] = {
+            "task_id": task_id,
+            "status": "queued",
+            "progress": 0,
+            "created_at": datetime.now(),
+            "started_at": None,
+            "completed_at": None,
+            "estimated_duration": estimated_duration,
+            "current_step": "В очереди на обработку",
+            "request": request.dict(),
+            "user_id": current_user["user_id"],
+        }
 
-    # Запускаем background task
-    background_tasks.add_task(
-        background_generate_profile, task_id, request, current_user["user_id"]
-    )
+        # Запускаем задачу в event loop (чтобы поддержать реальную отмену)
+        task = asyncio.create_task(
+            background_generate_profile(task_id, request, current_user["user_id"])
+        )
+        _task_handles[task_id] = task
 
     logger.info(
         f"🚀 Started generation task {task_id} for user {current_user['username']}"
@@ -338,10 +384,12 @@ async def get_task_status(task_id: str, current_user=Depends(get_current_user)):
     Returns:
         Текущий статус задачи и результат (если доступен)
     """
-    if task_id not in _active_tasks:
-        raise HTTPException(status_code=404, detail="Задача не найдена")
+    async with _tasks_lock:
+        task_data = _active_tasks.get(task_id)
+        result_data = _task_results.get(task_id)
 
-    task_data = _active_tasks[task_id]
+    if not task_data:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
 
     # Проверяем права доступа
     if task_data["user_id"] != current_user["user_id"]:
@@ -349,7 +397,7 @@ async def get_task_status(task_id: str, current_user=Depends(get_current_user)):
 
     # Формируем ответ
     task = GenerationTask(**task_data)
-    result = _task_results.get(task_id) if task.status == "completed" else None
+    result = result_data if task.status == "completed" else None
 
     return TaskStatusResponse(task=task, result=result)
 
@@ -402,10 +450,12 @@ async def get_task_result(task_id: str, current_user=Depends(get_current_user)):
     Returns:
         Полный результат генерации профиля
     """
-    if task_id not in _active_tasks:
-        raise HTTPException(status_code=404, detail="Задача не найдена")
+    async with _tasks_lock:
+        task_data = _active_tasks.get(task_id)
+        result_data = _task_results.get(task_id)
 
-    task_data = _active_tasks[task_id]
+    if not task_data:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
 
     # Проверяем права доступа
     if task_data["user_id"] != current_user["user_id"]:
@@ -418,10 +468,10 @@ async def get_task_result(task_id: str, current_user=Depends(get_current_user)):
             detail=f"Задача еще выполняется. Статус: {task_data['status']}",
         )
 
-    if task_id not in _task_results:
+    if result_data is None:
         raise HTTPException(status_code=404, detail="Результат не найден")
 
-    return _task_results[task_id]
+    return result_data
 
 
 @router.delete("/{task_id}")
@@ -465,14 +515,20 @@ async def cancel_task(task_id: str, current_user=Depends(get_current_user)):
 
     # Отменяем только если задача еще не завершена
     if task_data["status"] in ["queued", "processing"]:
-        _active_tasks[task_id].update(
-            {
-                "status": "cancelled",
-                "completed_at": datetime.now(),
-                "current_step": "Отменено пользователем",
-                "error_message": "Задача отменена пользователем",
-            }
-        )
+        async with _tasks_lock:
+            if task_id in _active_tasks:
+                _active_tasks[task_id].update(
+                    {
+                        "status": "cancelled",
+                        "completed_at": datetime.now(),
+                        "current_step": "Отменено пользователем",
+                        "error_message": "Задача отменена пользователем",
+                    }
+                )
+
+            task = _task_handles.get(task_id)
+            if task and not task.done():
+                task.cancel()
 
         logger.info(f"🛑 Cancelled generation task {task_id}")
 
@@ -596,4 +652,8 @@ def initialize_generation_system():
     logger.info("🧹 Initializing generation system...")
     _active_tasks.clear()
     _task_results.clear()
+    for task in list(_task_handles.values()):
+        if not task.done():
+            task.cancel()
+    _task_handles.clear()
     logger.info("✅ Generation system initialized")

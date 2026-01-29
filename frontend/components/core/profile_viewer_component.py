@@ -561,9 +561,9 @@ class ProfileViewerComponent:
                 with ui.tab_panel(markdown_tab):
                     with ui.scroll_area().classes("max-h-[60vh]"):
                         self._render_markdown_view()
-            except:
+            except Exception as e:
                 # Tab panels may not exist if not created yet
-                pass
+                logger.debug("Optional tab panels not rendered", exc_info=e)
 
         # Действия в футере
         self._render_profile_actions()

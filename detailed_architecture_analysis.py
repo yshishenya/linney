@@ -17,11 +17,11 @@ def analyze_dependency_injection():
     auth_interface_files = []
     for file in Path("/home/yan/A101/HR/backend").rglob("*.py"):
         try:
-            with open(file, 'r') as f:
+            with open(file, 'r', encoding='utf-8') as f:
                 content = f.read()
                 if "AuthInterface" in content:
                     auth_interface_files.append(str(file.relative_to(Path("/home/yan/A101/HR"))))
-        except:
+        except (OSError, UnicodeDecodeError):
             continue
     
     print("✅ AuthInterface pattern implementation:")
@@ -48,21 +48,21 @@ def analyze_layer_boundaries():
     # Check core layer doesn't import from API/services
     for file in Path("/home/yan/A101/HR/backend/core").rglob("*.py"):
         try:
-            with open(file, 'r') as f:
+            with open(file, 'r', encoding='utf-8') as f:
                 content = f.read()
                 if re.search(r'from\s+.*\.(api|services)', content):
                     violations.append(f"VIOLATION: {file} imports from higher layers")
-        except:
+        except (OSError, UnicodeDecodeError):
             continue
     
     # Check models layer doesn't import from core/services/API
     for file in Path("/home/yan/A101/HR/backend/models").rglob("*.py"):
         try:
-            with open(file, 'r') as f:
+            with open(file, 'r', encoding='utf-8') as f:
                 content = f.read()
                 if re.search(r'from\s+.*\.(api|services|core)', content):
                     violations.append(f"VIOLATION: {file} imports from higher layers")
-        except:
+        except (OSError, UnicodeDecodeError):
             continue
     
     if violations:
@@ -121,12 +121,12 @@ def analyze_abstraction_usage():
     
     for file in middleware_files:
         try:
-            with open(file, 'r') as f:
+            with open(file, 'r', encoding='utf-8') as f:
                 content = f.read()
                 if "AuthInterface" in content:
                     interface_usage_count += 1
                     print(f"  - Used in: {file.name}")
-        except:
+        except (OSError, UnicodeDecodeError):
             continue
     
     if interface_usage_count > 0:

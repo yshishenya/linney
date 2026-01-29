@@ -257,8 +257,9 @@ def get_version() -> str:
         version_file = Path(__file__).parent.parent.parent / "VERSION"
         if version_file.exists():
             return version_file.read_text().strip()
-    except:
-        pass
+    except (OSError, UnicodeDecodeError) as e:
+        # Fallback to default version
+        print(f"⚠️  Failed to read VERSION file: {e}")
 
     # По умолчанию
     return "1.0.0-dev"

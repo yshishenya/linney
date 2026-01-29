@@ -10,10 +10,13 @@
 
 import json
 import logging
+import os
 import uuid
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 from pathlib import Path
+
+import anyio
 
 from .data_loader import DataLoader
 from .llm_client import LLMClient
@@ -78,11 +81,13 @@ class ProfileGenerator:
                 langfuse_secret_key=langfuse_secret_key,
             )
             self.langfuse_enabled = bool(self.llm_client.langfuse)
+            self.prompt_manager = self.llm_client.prompt_manager
             logger.info("✅ LLMClient initialized from config")
         except Exception as e:
             logger.error(f"❌ Failed to initialize LLMClient: {e}")
             self.llm_client = None
             self.langfuse_enabled = False
+            self.prompt_manager = None
 
         logger.info("✅ ProfileGenerator initialized successfully")
 
@@ -165,8 +170,8 @@ class ProfileGenerator:
 
             # 6. Сохранение результата
             if save_result and final_result["success"]:
-                saved_path, md_content = self._save_result(
-                    final_result, department, position, profile_id
+                saved_path, md_content = await anyio.to_thread.run_sync(
+                    self._save_result, final_result, department, position, profile_id
                 )
                 final_result["metadata"]["saved_path"] = str(saved_path)
                 final_result["markdown_content"] = md_content
@@ -232,6 +237,9 @@ class ProfileGenerator:
                 "errors": ["Failed to parse valid profile from LLM response"],
             }
 
+        if self.llm_client is None:
+            raise RuntimeError("LLMClient not initialized")
+
         # Валидация через LLM клиент
         validation = self.llm_client.validate_profile_structure(profile)
 
@@ -281,8 +289,12 @@ class ProfileGenerator:
         return enhanced
 
     def _save_result(
-        self, result: Dict[str, Any], department: str, position: str, profile_id: str
-    ) -> Path:
+        self,
+        result: Dict[str, Any],
+        department: str,
+        position: str,
+        profile_id: Optional[str],
+    ) -> tuple[Path, Optional[str]]:
         """
         Сохранение результата генерации в новую иерархическую структуру файлов.
 
@@ -312,7 +324,6 @@ class ProfileGenerator:
             if self.docx_service:
                 logger.info("📄 Auto-generating DOCX profile...")
                 import tempfile
-                import os
 
                 # Создаем временный файл без контекстного менеджера
                 temp_fd, temp_docx_path = tempfile.mkstemp(suffix=".docx")
@@ -328,8 +339,11 @@ class ProfileGenerator:
                     # Удаляем временный файл в случае ошибки
                     try:
                         os.unlink(temp_docx_path)
-                    except:
-                        pass
+                    except Exception as cleanup_error:
+                        logger.debug(
+                            "Failed to cleanup temp DOCX after creation error",
+                            exc_info=cleanup_error,
+                        )
                     docx_temp_path = None
 
             # 4. Сохраняем JSON, MD и DOCX файлы в одну папку
@@ -431,6 +445,8 @@ class ProfileGenerator:
             analytics = generator.get_prompt_analytics()
             print(f"Cache status: {analytics['cache_status']}")
         """
+        if self.prompt_manager is None:
+            raise RuntimeError("PromptManager not initialized")
         return self.prompt_manager.get_prompt_analytics(prompt_name)
 
     def validate_prompt_template(
@@ -446,6 +462,8 @@ class ProfileGenerator:
             if validation["valid"]:
                 print("Template is valid!")
         """
+        if self.prompt_manager is None:
+            raise RuntimeError("PromptManager not initialized")
         return self.prompt_manager.validate_prompt_template(template, prompt_name)
 
     async def validate_system(self) -> Dict[str, Any]:

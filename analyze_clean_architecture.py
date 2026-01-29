@@ -9,7 +9,7 @@ import re
 import json
 from pathlib import Path
 from collections import defaultdict, deque
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 class CleanArchitectureAnalyzer:
     """Analyzes Clean Architecture compliance in the codebase"""
@@ -34,7 +34,7 @@ class CleanArchitectureAnalyzer:
         self.reverse_dependencies = defaultdict(set)
         self.violations = []
         
-    def analyze_file(self, file_path: Path) -> Tuple[str, List[str]]:
+    def analyze_file(self, file_path: Path) -> Tuple[Optional[str], List[str]]:
         """Analyze a single Python file for its imports"""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -119,7 +119,7 @@ class CleanArchitectureAnalyzer:
                         'violation_type': 'single_responsibility',
                         'severity': 'medium'
                     })
-            except:
+            except (OSError, UnicodeDecodeError):
                 continue
                 
         return violations
@@ -150,7 +150,7 @@ class CleanArchitectureAnalyzer:
                     
                 if 'AuthInterface' in content:
                     interface_usage['AuthInterface'] += 1
-            except:
+            except (OSError, UnicodeDecodeError):
                 continue
         
         # Check if we have interfaces but they're not used

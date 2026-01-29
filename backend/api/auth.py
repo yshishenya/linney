@@ -11,6 +11,9 @@ Endpoints:
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+import anyio
+from typing import Optional
+
 from ..models.schemas import (
     LoginRequest,
     LoginResponse,
@@ -46,7 +49,8 @@ async def get_current_user(
     """
     token = credentials.credentials
     auth_service = get_auth_service()
-    user_data = auth_service.verify_token(token)
+    # verify_token performs synchronous DB work (SQLite) -> run in threadpool
+    user_data = await anyio.to_thread.run_sync(auth_service.verify_token, token)
 
     if not user_data:
         raise HTTPException(
@@ -182,7 +186,8 @@ async def logout(current_user: dict = Depends(get_current_user)):
 
         # Инвалидируем все сессии пользователя
         auth_service = get_auth_service()
-        auth_service.invalidate_user_sessions(user_id)
+        # invalidate_user_sessions performs synchronous DB work (SQLite) -> run in threadpool
+        await anyio.to_thread.run_sync(auth_service.invalidate_user_sessions, user_id)
 
         logger.info(f"User {username} logged out successfully")
 
@@ -348,19 +353,16 @@ async def validate_token(current_user: dict = Depends(get_current_user)):
 # Дополнительные utility функции для использования в других модулях
 
 
-def get_current_user_optional(
+async def get_current_user_optional(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict:
-    """
-    Опциональная авторизация - не вызывает исключение если токен невалиден.
-    Возвращает None если пользователь не авторизован.
-    """
+) -> Optional[dict]:
+    """Опциональная авторизация (не падает, если токен невалиден)."""
     if not credentials:
         return None
 
     token = credentials.credentials
     auth_service = get_auth_service()
-    return auth_service.verify_token(token)
+    return await anyio.to_thread.run_sync(auth_service.verify_token, token)
 
 
 async def require_admin(current_user: dict = Depends(get_current_user)) -> dict:

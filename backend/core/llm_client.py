@@ -10,11 +10,14 @@ LLM клиент для интеграции с Gemini 2.5 Flash через Lang
 
 import json
 import logging
+import asyncio
+import random
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import httpx
+import anyio
 from langfuse import Langfuse
 from langfuse.openai import AsyncOpenAI
 
@@ -25,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 # Константы
 PROMPT_CACHE_TTL_SECONDS = 300  # 5 минут кеш для промптов
+LLM_MAX_RETRIES = 3
+LLM_RETRY_BASE_DELAY_SECONDS = 1.0
 
 
 class LLMClient:
@@ -280,6 +285,47 @@ class LLMClient:
 
         return prompt_obj, config
 
+    async def _get_prompt_and_config_async(
+        self, prompt_name: str
+    ) -> tuple[Optional[Any], Dict[str, Any]]:
+        """Async wrapper to avoid blocking event loop on Langfuse calls."""
+
+        def _get_sync() -> tuple[Optional[Any], Dict[str, Any]]:
+            return self._get_prompt_and_config(prompt_name)
+
+        return await anyio.to_thread.run_sync(_get_sync)
+
+    def _is_retryable_exception(self, exc: Exception) -> bool:
+        """Best-effort retry classification for transient API errors."""
+        if isinstance(exc, (httpx.TimeoutException, httpx.ConnectError, httpx.NetworkError)):
+            return True
+
+        if isinstance(exc, httpx.HTTPStatusError):
+            status_code = exc.response.status_code if exc.response else None
+            return status_code in {408, 409, 425, 429, 500, 502, 503, 504}
+
+        # OpenAI SDK exceptions (avoid importing; rely on names)
+        retryable_names = {
+            "RateLimitError",
+            "APITimeoutError",
+            "APIConnectionError",
+            "InternalServerError",
+            "ServiceUnavailableError",
+        }
+        if type(exc).__name__ in retryable_names:
+            return True
+
+        return False
+
+    async def _sleep_before_retry(self, attempt: int) -> None:
+        delay = min(
+            LLM_RETRY_BASE_DELAY_SECONDS * (2**attempt),
+            20.0,
+        )
+        # jitter
+        delay = delay * (0.8 + random.random() * 0.4)
+        await asyncio.sleep(delay)
+
     def _compile_prompt_to_messages(
         self, prompt_obj: Optional[Any], variables: Dict[str, Any]
     ) -> List[Dict[str, str]]:
@@ -448,7 +494,7 @@ class LLMClient:
 
         try:
             # Получаем промпт и конфигурацию
-            prompt_obj, config = self._get_prompt_and_config(prompt_name)
+            prompt_obj, config = await self._get_prompt_and_config_async(prompt_name)
 
             model = config.get("model", "google/gemini-2.5-flash")
             temperature = config.get("temperature", 0.1)
@@ -467,59 +513,56 @@ class LLMClient:
                 prompt_name, prompt_obj, variables, user_id, session_id
             )
 
-            # Выполняем асинхронный запрос через правильную функцию с декоратором для связки промптов
-            try:
-                response = await self._create_generation_with_prompt(
-                    prompt=prompt_obj,  # Может быть None при fallback
-                    messages=messages,
-                    model=model,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    response_format=response_format,
-                    trace_metadata=trace_metadata,
-                )
-                logger.info("✅ Generation with prompt linking completed")
-            except httpx.HTTPStatusError as e:
-                logger.error(
-                    "OpenAI API HTTP error",
-                    extra={
-                        "status_code": e.response.status_code,
-                        "prompt_name": prompt_name,
-                        "model": model,
-                        "response_text": e.response.text[:500] if e.response else None
-                    }
-                )
-                raise
-            except httpx.TimeoutException as e:
-                logger.error(
-                    "OpenAI API timeout",
-                    extra={
-                        "prompt_name": prompt_name,
-                        "model": model,
-                        "timeout": str(e)
-                    }
-                )
-                raise
-            except httpx.ConnectError as e:
-                logger.error(
-                    "OpenAI API connection error",
-                    extra={
-                        "prompt_name": prompt_name,
-                        "model": model,
-                        "error": str(e)
-                    }
-                )
-                raise
-            except Exception as api_error:
-                logger.exception(
-                    "Unexpected OpenAI API error",
-                    extra={
-                        "prompt_name": prompt_name,
-                        "model": model,
-                        "error_type": type(api_error).__name__
-                    }
-                )
-                raise
+            # Выполняем асинхронный запрос с retry (только для транзиентных ошибок)
+            response = None
+            for attempt in range(LLM_MAX_RETRIES):
+                try:
+                    response = await self._create_generation_with_prompt(
+                        prompt=prompt_obj,  # Может быть None при fallback
+                        messages=messages,
+                        model=model,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        response_format=response_format,
+                        trace_metadata=trace_metadata,
+                    )
+                    logger.info("✅ Generation with prompt linking completed")
+                    break
+                except asyncio.CancelledError:
+                    raise
+                except Exception as api_error:
+                    retryable = self._is_retryable_exception(api_error)
+                    is_last = attempt >= (LLM_MAX_RETRIES - 1)
+
+                    if retryable and not is_last:
+                        logger.warning(
+                            "LLM request failed; retrying",
+                            extra={
+                                "attempt": attempt + 1,
+                                "max_attempts": LLM_MAX_RETRIES,
+                                "prompt_name": prompt_name,
+                                "model": model,
+                                "error_type": type(api_error).__name__,
+                                "error": str(api_error)[:500],
+                            },
+                        )
+                        await self._sleep_before_retry(attempt)
+                        continue
+
+                    logger.exception(
+                        "LLM request failed",
+                        extra={
+                            "attempt": attempt + 1,
+                            "max_attempts": LLM_MAX_RETRIES,
+                            "prompt_name": prompt_name,
+                            "model": model,
+                            "error_type": type(api_error).__name__,
+                        },
+                    )
+                    raise
+
+            if response is None:
+                raise RuntimeError("LLM request failed: no response after retries")
 
             # Извлекаем ответ и парсим JSON
             generated_text = response.choices[0].message.content
@@ -856,4 +899,3 @@ class LLMClient:
                         validation_result["warnings"].append(
                             f"performance_metrics должен содержать '{field}'"
                         )
-

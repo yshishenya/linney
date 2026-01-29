@@ -20,6 +20,8 @@ from datetime import datetime, timedelta
 import httpx
 from nicegui import ui
 
+from ..utils.config import config as frontend_config
+
 logger = logging.getLogger(__name__)
 
 
@@ -71,7 +73,7 @@ class APIClient:
 
         # Загружаем токены из NiceGUI storage
         self._load_tokens_from_storage()
-        print("DIAGNOSTIC: APIClient initialized!")
+        logger.debug("APIClient initialized")
 
     def _ensure_locks(self):
         """Инициализация asyncio locks для предотвращения race conditions"""
@@ -111,11 +113,11 @@ class APIClient:
                         logger.info("Loaded access token from NiceGUI storage")
                         return
 
-            # Если remember_me был установлен, пробуем загрузить из localStorage (безопасно)
+            # Если remember_me был установлен, пробуем загрузить из localStorage (dev only)
             try:
                 from nicegui import ui
 
-                if hasattr(ui, "run_javascript"):
+                if frontend_config.ENVIRONMENT != "production" and hasattr(ui, "run_javascript"):
                     # Используем более длинный timeout и обработку ошибок
                     try:
                         token_data_str = ui.run_javascript(
@@ -128,8 +130,6 @@ class APIClient:
                             and token_data_str.strip()
                             and token_data_str != "null"
                         ):
-                            import json
-
                             token_data = json.loads(token_data_str)
 
                             # Валидация данных
@@ -178,8 +178,8 @@ class APIClient:
                             ui.run_javascript(
                                 'localStorage.removeItem("hr_token_data")', timeout=1.0
                             )
-                        except:
-                            pass
+                        except Exception as e:
+                            logger.debug("Failed to clear invalid localStorage token", exc_info=e)
 
             except Exception as browser_e:
                 logger.debug(f"Could not load from browser storage: {browser_e}")
@@ -188,7 +188,7 @@ class APIClient:
             logger.debug(f"Could not load tokens from storage: {e}")
 
         # Fallback: загружаем из environment variables (только для разработки)
-        if not self._access_token:
+        if not self._access_token and frontend_config.ENVIRONMENT != "production":
             import os
 
             test_token = os.getenv("TEST_JWT_TOKEN")
@@ -196,7 +196,7 @@ class APIClient:
                 self._access_token = test_token
                 logger.info("✅ Loaded TEST_JWT_TOKEN from environment variables")
             else:
-                logger.warning("❌ TEST_JWT_TOKEN not found in environment variables")
+                logger.debug("TEST_JWT_TOKEN not found in environment variables")
 
         logger.debug(
             f"_load_tokens_from_storage: Final token state={'present' if self._access_token else 'None/empty'}"
@@ -206,8 +206,6 @@ class APIClient:
         """Сохранение токенов с учетом remember_me"""
         try:
             from nicegui import app
-            import json
-
             if not self._access_token:
                 return
 
@@ -227,8 +225,8 @@ class APIClient:
                 app.storage.user["token_data"] = token_data
                 app.storage.user["authenticated"] = True
 
-            # Если remember_me=True, также сохраняем в localStorage
-            if self._remember_me:
+            # Если remember_me=True, также сохраняем в localStorage (dev only)
+            if self._remember_me and frontend_config.ENVIRONMENT != "production":
                 try:
                     from nicegui import ui
 
@@ -336,8 +334,8 @@ class APIClient:
                 error_data = {}
                 try:
                     error_data = response.json()
-                except:
-                    pass
+                except (ValueError, json.JSONDecodeError) as e:
+                    logger.debug("Failed to decode error JSON", exc_info=e)
 
                 error_message = error_data.get("detail", f"HTTP {response.status_code}")
                 raise APIError(
@@ -716,7 +714,7 @@ class APIClient:
         return await self._make_request("GET", f"/api/profiles/{profile_id}")
 
     async def download_profile_json(self, profile_id: str) -> bytes:
-        print(f"DIAGNOSTIC: Attempting to download JSON for profile {profile_id}")
+        logger.debug("Attempting to download JSON for profile %s", profile_id)
         """
         @doc
         Скачивание профиля в JSON формате.
@@ -903,8 +901,11 @@ class APIClient:
         """Cleanup при удалении объекта"""
         try:
             asyncio.create_task(self.close())
-        except:
-            pass
+        except RuntimeError as e:
+            # No running event loop (common at interpreter shutdown)
+            logger.debug("APIClient cleanup skipped: no running loop", exc_info=e)
+        except Exception as e:
+            logger.debug("APIClient cleanup failed", exc_info=e)
 
 
 # ============================================================================
@@ -944,7 +945,7 @@ def handle_api_error(error: APIError, context: str = "API request") -> None:
         )
 
     async def download_profile_json(self, profile_id: str) -> bytes:
-        print(f"DIAGNOSTIC: Attempting to download JSON for profile {profile_id}")
+        logger.debug("Attempting to download JSON for profile %s", profile_id)
         """
         @doc
         Скачивание профиля в JSON формате.

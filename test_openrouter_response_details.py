@@ -132,8 +132,8 @@ def explore_openrouter_response():
                         value = getattr(usage, attr)
                         if not callable(value):
                             usage_attrs[attr] = value
-                    except:
-                        pass
+                    except Exception:
+                        continue
             print(
                 f"  📋 All usage attributes: {json.dumps(usage_attrs, indent=2, default=str)}"
             )
@@ -162,8 +162,8 @@ def explore_openrouter_response():
                     value = getattr(response, attr)
                     if not callable(value):
                         all_attrs[attr] = value
-                except:
-                    pass
+                except Exception:
+                    continue
         print(
             f"  📋 Additional attributes: {json.dumps(all_attrs, indent=2, default=str)}"
         )

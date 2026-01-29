@@ -196,7 +196,8 @@ class LiveAPITester:
                 try:
                     error_data = response.json()
                     print(f"   Error details: {error_data}")
-                except:
+                except ValueError as e:
+                    print(f"   Failed to parse error JSON: {e}")
                     print(f"   Response text: {response.text[:200]}")
                 return False
 
@@ -213,6 +214,7 @@ class LiveAPITester:
             print("   ⏳ Polling generation status...")
 
             max_polls = 5
+            status = "unknown"
             for i in range(max_polls):
                 status_response = self.session.get(
                     f"{self.base_url}/api/generation-task/{task_id}/status",

@@ -215,8 +215,8 @@ class GenerationFlowTester:
                             try:
                                 json_data = json.loads(response.content)
                                 print(f"      Valid JSON with {len(json_data)} keys")
-                            except:
-                                print(f"      ⚠️ Invalid JSON content")
+                            except (json.JSONDecodeError, TypeError, UnicodeDecodeError) as e:
+                                print(f"      ⚠️ Invalid JSON content: {e}")
 
                         elif file_format == "md":
                             content = response.content.decode('utf-8')

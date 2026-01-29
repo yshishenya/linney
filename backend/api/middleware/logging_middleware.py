@@ -16,6 +16,10 @@ from datetime import datetime
 import time
 import logging
 
+import anyio
+
+from typing import Optional
+
 from ...core.interfaces import AuthInterface
 
 logger = logging.getLogger(__name__)
@@ -38,7 +42,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # 📤 GET /api/profiles - ✅ 200 - user:admin - 0.123s
     """
 
-    def __init__(self, app, auth_service: AuthInterface = None):
+    def __init__(self, app, auth_service: Optional[AuthInterface] = None):
         super().__init__(app)
         self.auth_service = auth_service
 
@@ -69,12 +73,15 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             token = auth_header.split(" ")[1]
             try:
                 if self.auth_service is not None:
-                    user_data = self.auth_service.verify_token(token)
+                    # verify_token performs synchronous DB work (SQLite) -> run in threadpool
+                    user_data = await anyio.to_thread.run_sync(
+                        self.auth_service.verify_token, token
+                    )
                     if user_data:
                         user_info = f"user:{user_data['username']}"
-            except Exception:
-                # AuthService issues - не падаем, просто логируем как anonymous
-                pass
+            except Exception as e:
+                # AuthService issues - do not fail request, but keep trace.
+                logger.debug("Failed to resolve user from token", exc_info=e)
 
         logger.info(f"📥 {method} {path} - {user_info} from {client_ip}")
 

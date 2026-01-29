@@ -15,6 +15,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from ...core.config import config
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
@@ -52,14 +54,25 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # Строгий Content Security Policy для производства
         # В разработке более мягкий CSP для работы с документацией
-        csp = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-            "img-src 'self' data: https:; "
-            "font-src 'self' data:; "
-            "worker-src blob:;"
-        )
+        if config.ENVIRONMENT == "production":
+            # Avoid 'unsafe-eval' in production.
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "img-src 'self' data: https:; "
+                "font-src 'self' data:; "
+                "worker-src blob:;"
+            )
+        else:
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "img-src 'self' data: https:; "
+                "font-src 'self' data:; "
+                "worker-src blob:;"
+            )
         response.headers["Content-Security-Policy"] = csp
 
         return response

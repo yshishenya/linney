@@ -38,6 +38,7 @@
 - [x] [BUG-02] Fix HTTP 401 authentication error - password migration (2025-10-25)
 - [x] [BUG-03] Fix backend Docker container startup - missing List import (2025-10-25)
 - [x] [BUG-04] Fix parallel generation network errors - improved aiohttp connector and retry logic (2025-10-25)
+- [x] [BUG-05] Fix async event-loop blocking, task cancellation, and CSP hardening (2026-01-29)
 
 ### DevOps (Q1 2025)
 - [x] [DOCKER-01] Docker containerization
