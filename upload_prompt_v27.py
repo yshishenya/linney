@@ -33,8 +33,18 @@ from langfuse import Langfuse
 
 
 def upload_prompt_v27():
-    """Upload prompt v27 to Langfuse"""
 
+    """Upload prompt v27 to Langfuse.
+    
+    This function handles the uploading of the v27 prompt to Langfuse by first
+    initializing the Langfuse client with the necessary credentials. It reads the
+    prompt from a specified file, processes the content to remove metadata, and
+    then attempts to create the prompt in Langfuse. If the prompt already exists,
+    it will create a new version instead.
+    
+    Returns:
+        bool: True if the upload or version creation was successful, False otherwise.
+    """
     print("📤 Uploading Prompt v27 to Langfuse")
     print("=" * 70)
 
@@ -183,8 +193,18 @@ def upload_prompt_v27():
 
 
 def test_prompt_retrieval_v27():
-    """Test retrieving the uploaded prompt v27"""
 
+    """Test retrieving the uploaded prompt v27.
+    
+    This function tests the retrieval of a specific prompt from the Langfuse
+    service using provided API keys.  It checks the prompt's content, identifies
+    any fix markers, and retrieves associated configuration and labels.  If any
+    issues occur during the retrieval process, it captures and prints the exception
+    details.
+    
+    Returns:
+        bool: True if the prompt was retrieved successfully, False otherwise.
+    """
     print(f"\n🔍 Testing prompt v27 retrieval...")
 
     public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
