@@ -249,15 +249,7 @@ class LLMClient:
     def _get_prompt_and_config(
         self, prompt_name: str
     ) -> tuple[Optional[Any], Dict[str, Any]]:
-        """
-        Получение промпта из Langfuse и конфигурации с fallback.
-
-        Args:
-            prompt_name: Имя промпта в Langfuse
-
-        Returns:
-            Tuple из (prompt_obj, config)
-        """
+        """Retrieve a prompt and its configuration from Langfuse with fallback."""
         prompt_obj = None
         if self.langfuse:
             try:
@@ -470,25 +462,21 @@ class LLMClient:
         user_id: Optional[str] = None,
         session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        @doc Асинхронная генерация профиля должности через Langfuse prompt с traced execution
-
+        """Asynchronously generates a profile from a Langfuse prompt with traced
+        execution.
+        
+        This function retrieves the specified prompt and its configuration, compiles
+        the prompt  into a message format, and builds metadata for tracing. It then
+        performs an asynchronous  request to generate a profile using the Langfuse API,
+        handling various potential errors  during the request. Finally, it extracts the
+        generated text, parses it into JSON, and  returns a structured response
+        containing the profile and metadata.
+        
         Args:
-            prompt_name: Имя промпта в Langfuse
-            variables: Переменные для подстановки в промпт
-            user_id: ID пользователя для трейсинга
-            session_id: ID сессии для трейсинга
-
-        Returns:
-            Словарь с результатом генерации
-
-        Examples:
-            python>
-            client = LLMClient(api_key, langfuse_keys...)
-            result = await client.generate_profile_from_langfuse(
-                prompt_name="a101-hr-profile-gemini-v2",
-                variables={"position": "Senior Developer", "department": "IT"}
-            )
+            prompt_name: The name of the prompt in Langfuse.
+            variables: Variables to substitute into the prompt.
+            user_id: The user ID for tracing (optional).
+            session_id: The session ID for tracing (optional).
         """
         start_time = time.time()
 

@@ -101,18 +101,22 @@ class ProfileGenerator:
         save_result: bool = True,
         profile_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Генерация профиля должности
-
+        """Generate a job profile based on the provided parameters.
+        
+        This function orchestrates the generation of a job profile by preparing the
+        necessary data  through the DataLoader, invoking the Langfuse LLM client for
+        profile generation, and  validating the generated output. It also handles the
+        optional saving of the result to a  specified path if required. The function
+        logs the process at various stages for tracking  purposes and returns a
+        structured result containing the profile and associated metadata.
+        
         Args:
-            department: Название департамента
-            position: Название должности
-            employee_name: ФИО сотрудника (опционально)
-            temperature: Температура генерации LLM
-            save_result: Сохранять ли результат в файл
-
-        Returns:
-            Полный результат генерации с метаданными
+            department: Название департамента.
+            position: Название должности.
+            employee_name: ФИО сотрудника (опционально).
+            temperature: Температура генерации LLM.
+            save_result: Сохранять ли результат в файл.
+            profile_id: Идентификатор профиля (опционально).
         """
         generation_start = datetime.now()
 
