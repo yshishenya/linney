@@ -125,20 +125,7 @@ class GeneratorComponent:
         self.on_generation_error: Optional[Callable[[str], None]] = None
 
     def set_position(self, position: str, department: str):
-        """
-        @doc
-        Установка выбранной позиции для генерации.
-
-        Вызывается SearchComponent при выборе должности.
-
-        Args:
-            position: Название позиции
-            department: Название департамента
-
-        Examples:
-          python> generator.set_position("Java-разработчик", "ДИТ")
-          python> # Позиция установлена для генерации
-        """
+        """Sets the selected position and department for generation."""
         logger.info(
             f"🔥 DEBUG: GeneratorComponent.set_position called with position='{position}', department='{department}'"
         )
@@ -157,17 +144,7 @@ class GeneratorComponent:
         logger.info(f"Generator received position: {position} in {department}")
 
     async def render_generator_section(self) -> ui.column:
-        """
-        @doc
-        Рендеринг секции генерации профилей.
-
-        Returns:
-            ui.column: Контейнер с секцией генерации
-
-        Examples:
-          python> container = await generator.render_generator_section()
-          python> # Секция генерации отрендерена
-        """
+        """Render the profile generation section."""
         with ui.column().classes("w-full gap-4") as generator_container:
             # Заголовок секции
             with ui.row().classes("w-full items-center gap-3"):
@@ -204,15 +181,13 @@ class GeneratorComponent:
         return generator_container
 
     def _update_generation_ui_state(self):
-        """
-        @doc
-        Обновление состояния UI кнопки генерации.
-
-        Включает/отключает кнопку в зависимости от наличия выбранной позиции.
-
-        Examples:
-          python> generator._update_generation_ui_state()
-          python> # UI обновлен в соответствии с текущим состоянием
+        """Update the UI state of the generation button.
+        
+        This method enables or disables the generate button based on the  presence of a
+        selected position and department. If both are selected  and the generation
+        process is not ongoing, the button is enabled with  the appropriate text. If
+        the generation is in progress, the button  displays a loading message;
+        otherwise, it shows the default text.
         """
         if self.generate_button:
             has_position = bool(self.selected_position and self.selected_department)
@@ -230,15 +205,13 @@ class GeneratorComponent:
                     self.generate_button.set_text("🚀 Сгенерировать профиль")
 
     async def _start_generation(self):
-        """
-        @doc
-        Запуск генерации профиля должности.
-
-        Отправляет запрос на backend для генерации через LLM и показывает прогресс.
-
-        Examples:
-          python> await generator._start_generation()
-          python> # Генерация запущена, показан прогресс-диалог
+        """Start the generation of a job profile.
+        
+        This method initiates the profile generation process by sending a request to
+        the backend via an API call. It first checks if a position and department are
+        selected, and if not, it notifies the user. Upon successful initiation, it
+        updates the UI state, logs the generation data, and handles the response,
+        including error management and progress display.
         """
         if (
             not self.selected_position
@@ -500,17 +473,8 @@ class GeneratorComponent:
             )
 
     async def _show_generation_success(self):
-        """
-        @doc
-        Отображение успешного завершения генерации.
-
-        Показывает диалог успеха с действиями для просмотра результата.
-
-        Examples:
-          python> await generator._show_generation_success()
-          python> # Показан диалог успешной генерации
-        """
         # Получаем результат генерации с обработкой ошибок
+        """Displays a success dialog for the generation completion."""
         try:
             result_response = await self.api_client.get_generation_task_result(
                 self.current_task_id
@@ -627,19 +591,20 @@ class GeneratorComponent:
         ui.notify(f"⚠️ {friendly_message}", type="warning", position="top")
 
     def _get_user_friendly_error(self, technical_error: str) -> tuple[str, str]:
-        """
-        @doc
-        Конвертация технических ошибок в понятные пользователю сообщения.
-
+        """Convert technical error messages into user-friendly messages.
+        
+        This function analyzes the provided technical error message and maps it to a
+        more understandable message for the user, along with a suggestion for
+        resolution. It checks for various categories of errors, including network
+        issues, API errors, rate limits, authorization problems, generation failures,
+        and validation errors, returning appropriate messages based on the identified
+        issue.
+        
         Args:
-            technical_error: Техническое сообщение об ошибке
-
+            technical_error (str): A technical error message.
+        
         Returns:
-            tuple[str, str]: (friendly_message, suggestion)
-
-        Examples:
-          python> msg, suggestion = generator._get_user_friendly_error("API timeout")
-          python> print(msg)  # "Сервер не отвечает"
+            tuple[str, str]: A tuple containing a user-friendly message and a suggestion for resolution.
         """
         error_lower = technical_error.lower()
 
@@ -703,33 +668,17 @@ class GeneratorComponent:
             )
 
     def _select_different_position(self, dialog):
-        """
-        @doc
-        Выбор другой должности после ошибки генерации.
-
-        Args:
-            dialog: Диалог ошибки для закрытия
-
-        Examples:
-          python> generator._select_different_position(dialog)
-          python> # Генератор сброшен для выбора новой должности
-        """
+        """Closes the error dialog and prompts to select a different position."""
         dialog.close()
         self._reset_generator()
         ui.notify("🔍 Выберите другую должность для генерации", type="info")
 
     def _view_profile_result(self, result, dialog):
-        """
-        @doc
-        Просмотр результата сгенерированного профиля.
-
+        """View the generated profile result.
+        
         Args:
-            result: Данные профиля из API
-            dialog: Диалог для закрытия
-
-        Examples:
-          python> generator._view_profile_result(result, dialog)
-          python> # Результат передан компоненту просмотра
+            result: Profile data from the API.
+            dialog: Dialog for closing.
         """
         dialog.close()
 
@@ -770,16 +719,7 @@ class GeneratorComponent:
         asyncio.create_task(self._start_generation())
 
     def _reset_generator(self):
-        """
-        @doc
-        Сброс состояния генератора.
-
-        Очищает выбранную позицию и статус генерации.
-
-        Examples:
-          python> generator._reset_generator()
-          python> # Генератор сброшен к начальному состоянию
-        """
+        """Resets the generator state."""
         self.selected_position = ""
         self.selected_department = ""
         self.current_task_id = None
@@ -843,17 +783,7 @@ class GeneratorComponent:
                 )
 
     def get_generation_status(self) -> Dict[str, Any]:
-        """
-        @doc
-        Получение текущего статуса генерации.
-
-        Returns:
-            Dict[str, Any]: Статус генерации
-
-        Examples:
-          python> status = generator.get_generation_status()
-          python> print(status["is_generating"])  # True/False
-        """
+        """Retrieve the current generation status."""
         return {
             "is_generating": self.is_generating,
             "task_id": self.current_task_id,
@@ -867,21 +797,19 @@ class GeneratorComponent:
     # === Error Recovery Methods ===
 
     async def _safe_generation_api_call(self, api_func, *args, **kwargs):
-        """
-        @doc
-        Execute generation API call with circuit breaker and retry protection.
-
+        """Execute generation API call with circuit breaker and retry protection.
+        
+        This function attempts to call the specified API function with the provided
+        arguments. If the circuit breaker and retry manager are not available, it
+        falls back to a direct call. In case of an exception during the call, it  logs
+        the error and returns None. When the recovery infrastructure is in  place, it
+        utilizes the circuit breaker and retry manager to handle errors  and retries
+        based on the defined conditions.
+        
         Args:
             api_func: API function to call
             *args: Positional arguments for api_func
             **kwargs: Keyword arguments for api_func
-
-        Returns:
-            API response or None if all recovery attempts fail
-
-        Examples:
-          python> response = await generator._safe_generation_api_call(api_client.start_profile_generation)
-          python> # Generation API call with error recovery protection
         """
         if not self.circuit_breaker or not self.retry_manager:
             # Fallback to direct call if no recovery infrastructure
@@ -908,19 +836,13 @@ class GeneratorComponent:
             return None
 
     def _should_retry_generation_error(self, error: Exception) -> bool:
-        """
-        @doc
-        Determine if generation error should trigger retry.
-
-        Args:
-            error: Exception from generation API call
-
-        Returns:
-            True if should retry, False otherwise
-
-        Examples:
-          python> should_retry = generator._should_retry_generation_error(TimeoutError())
-          python> print(should_retry)  # True
+        """Determine if generation error should trigger retry.
+        
+        This function evaluates the provided error to decide if a retry is warranted.
+        It first checks against a list of permanent errors that should not trigger a
+        retry.  If the error is not permanent, it then checks for conditions that
+        indicate a temporary  issue, which would allow for a retry. Debug logging is
+        performed to provide insights  into the decision-making process.
         """
         error_str = str(error).lower()
 
@@ -972,22 +894,16 @@ class GeneratorComponent:
         return should_retry
 
     def _should_retry_status_check(self, error: Exception, attempt: int) -> bool:
-        """
-        @doc
-        Determine if status check error should be retried.
-
-        Args:
-            error: Exception from status check
-            attempt: Current attempt number
-
-        Returns:
-            True if should retry status check
-
-        Examples:
-          python> should_retry = generator._should_retry_status_check(ConnectionError(), 3)
-          python> print(should_retry)  # True if attempt < 10
-        """
         # Give up after too many attempts
+        """Determine if status check error should be retried.
+        
+        Args:
+            error: Exception from status check.
+            attempt: Current attempt number.
+        
+        Returns:
+            True if the status check should be retried, otherwise False.
+        """
         if attempt >= 20:  # 20 attempts = ~15 minutes with progressive delays
             return False
 
@@ -1010,17 +926,11 @@ class GeneratorComponent:
     async def _handle_generation_failure(
         self, error_message: str, allow_retry: bool = True
     ):
-        """
-        @doc
-        Handle generation failure with enhanced recovery options.
-
+        """Handle generation failure and provide recovery options.
+        
         Args:
-            error_message: Error message from the failure
-            allow_retry: Whether to offer retry options to user
-
-        Examples:
-          python> await generator._handle_generation_failure("Connection timeout", allow_retry=True)
-          python> # Enhanced error handling with recovery options
+            error_message: Error message from the failure.
+            allow_retry: Whether to offer retry options to user.
         """
         self.last_generation_error = error_message
         logger.error(f"Generation failure: {error_message}")
@@ -1052,19 +962,19 @@ class GeneratorComponent:
     async def _show_generation_error_with_recovery(
         self, error_message: str, allow_retry: bool = True
     ):
-        """
-        @doc
-        Show generation error with enhanced recovery options.
-
-        Args:
-            error_message: Technical error message
-            allow_retry: Whether to show retry options
-
-        Examples:
-          python> await generator._show_generation_error_with_recovery("API timeout", True)
-          python> # Enhanced error dialog with recovery options shown
-        """
         # Convert technical errors to user-friendly messages
+        """Show generation error with enhanced recovery options.
+        
+        This asynchronous function displays a user-friendly error dialog when a
+        generation error occurs. It converts technical error messages into more
+        understandable formats and provides suggestions for recovery. The dialog
+        includes information about the number of attempts made, the current recovery
+        mode status, and options for retrying or selecting a different position.
+        
+        Args:
+            error_message (str): Technical error message.
+            allow_retry (bool?): Whether to show retry options. Defaults to True.
+        """
         friendly_message, suggestion = self._get_user_friendly_error(error_message)
 
         with ui.dialog() as dialog:
@@ -1157,17 +1067,11 @@ class GeneratorComponent:
             self.on_generation_error(error_message)
 
     async def _enhanced_retry_generation(self, dialog, delay_seconds: int):
-        """
-        @doc
-        Enhanced retry with user feedback and delay.
-
+        """Enhanced retry mechanism with user feedback and delay.
+        
         Args:
-            dialog: Error dialog to close
-            delay_seconds: Delay before retry
-
-        Examples:
-          python> await generator._enhanced_retry_generation(dialog, 30)
-          python> # Retry with 30-second delay and user feedback
+            dialog: Error dialog to close.
+            delay_seconds: Delay before retry.
         """
         dialog.close()
         self.recovery_mode = True
@@ -1200,17 +1104,7 @@ class GeneratorComponent:
             await self._start_generation()
 
     async def _reset_and_retry(self, dialog):
-        """
-        @doc
-        Reset generator state and retry generation.
-
-        Args:
-            dialog: Error dialog to close
-
-        Examples:
-          python> await generator._reset_and_retry(dialog)
-          python> # Generator reset and retry attempted
-        """
+        """Reset the generator state and retry generation."""
         dialog.close()
 
         logger.info("Resetting generator state for fresh retry")
@@ -1233,16 +1127,7 @@ class GeneratorComponent:
         await self._start_generation()
 
     def _save_component_state(self):
-        """
-        @doc
-        Save current component state for recovery.
-
-        Captures current generation state to enable rollback on errors.
-
-        Examples:
-          python> generator._save_component_state()
-          python> # Current state saved for recovery
-        """
+        """Save the current component state for recovery."""
         if not self.error_recovery_coordinator:
             return
 
@@ -1302,16 +1187,7 @@ class GeneratorComponent:
             ui.notify("⚠️ Частичное восстановление генератора", type="warning")
 
     async def reset_component_state(self):
-        """
-        @doc
-        Reset component to clean state.
-
-        Used for manual recovery or when starting fresh.
-
-        Examples:
-          python> await generator.reset_component_state()
-          python> # Generator reset to clean state
-        """
+        """Reset the component to a clean state."""
         logger.info("Resetting generator component state")
 
         # Clear all generation state

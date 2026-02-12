@@ -124,18 +124,7 @@ class FilesManagerComponent:
             )
 
     def _safe_notify(self, message: str, type_: str = "info"):
-        """
-        @doc
-        Безопасный вызов ui.notify() с fallback на logger.
-
-        Args:
-            message: Сообщение для уведомления
-            type_: Тип уведомления (info, positive, negative, warning)
-
-        Examples:
-          python> self._safe_notify("Файл скачан", "positive")
-          python> # Покажет уведомление или залогирует если UI недоступен
-        """
+        """Safely calls ui.notify() with a fallback to logging."""
         try:
             ui.notify(message, type=type_)
         except RuntimeError:
@@ -186,18 +175,7 @@ class FilesManagerComponent:
         return files_container
 
     def download_file(self, profile_id: str, format_type: str):
-        """
-        @doc
-        Скачивание файла профиля в указанном формате через ui.download().
-
-        Args:
-            profile_id: ID профиля для скачивания
-            format_type: Формат файла ("json", "markdown", "docx")
-
-        Examples:
-          python> files_manager.download_file("profile123", "json")
-          python> # JSON файл скачан через NiceGUI ui.download()
-        """
+        """Downloads a profile file in the specified format."""
         if not profile_id:
             logger.warning("No profile ID provided for download")
             self._safe_notify("❌ Не указан ID профиля", "negative")
@@ -216,14 +194,17 @@ class FilesManagerComponent:
         self._download_file_sync(profile_id, format_type)
 
     def _download_file_sync(self, profile_id: str, format_type: str):
-        """
-        @doc
-        Синхронное скачивание файла через прямое чтение из файловой системы.
-
+        """def _download_file_sync(self, profile_id: str, format_type: str):
+        Synchronously downloads a file by reading it from the filesystem.  This
+        function determines the file path based on the provided profile_id  and
+        format_type. It reads the file content according to the specified  format
+        (json, docx, or markdown) and initiates a download using  ui.download(). If any
+        errors occur during file reading or downloading,  appropriate notifications are
+        sent, and errors are logged.
+        
         Args:
             profile_id: ID профиля для скачивания
-            format_type: Формат файла
-        """
+            format_type: Формат файла"""
         try:
             # Определяем путь к файлу на основе profile_id
             file_path = self._find_profile_file_sync(profile_id, format_type)
@@ -284,15 +265,13 @@ class FilesManagerComponent:
             self._safe_notify("❌ Произошла ошибка при скачивании", "negative")
 
     async def _download_file_async(self, profile_id: str, format_type: str):
-        """
-        @doc
-        Асинхронное скачивание файла через прямое чтение из файловой системы.
-
-        Bypasses authentication issues by reading files directly from generated_profiles/.
-
-        Args:
-            profile_id: ID профиля для скачивания
-            format_type: Формат файла
+        """Asynchronously downloads a file by reading it directly from the file system.
+        
+        This function determines the file path based on the provided profile_id and
+        format_type.  It reads the file content according to the specified format,
+        handles potential errors during  file reading, and initiates a download using
+        ui.download(). Notifications are sent to the user  regarding the success or
+        failure of each operation, ensuring a smooth user experience.
         """
         try:
             # Определяем путь к файлу на основе profile_id
@@ -354,20 +333,18 @@ class FilesManagerComponent:
             self._safe_notify("❌ Произошла ошибка при скачивании", "negative")
 
     async def _find_profile_file(self, profile_id: str, format_type: str) -> Optional[str]:
-        """
-        @doc
-        Поиск файла профиля в файловой системе по profile_id и позиции.
-
-        Использует два подхода:
-        1. Поиск по profile_id в имени файла
-        2. Поиск по последнему выбранному профилю из SearchComponent
-
+        """Searches for a profile file in the filesystem by profile_id and format_type.
+        
+        This function employs two strategies to locate the desired profile file.
+        First, it searches for files matching the profile_id in their names using
+        various patterns. If no files are found, it attempts to retrieve the last
+        selected profile from SearchComponent and performs a fallback search for  any
+        file of the specified format type. If successful, it returns the full  path to
+        the found file; otherwise, it returns None.
+        
         Args:
             profile_id: UUID профиля из базы данных
             format_type: Тип файла для поиска
-
-        Returns:
-            str: Полный путь к файлу или None если не найден
         """
         import os
         import glob
@@ -425,12 +402,10 @@ class FilesManagerComponent:
         return None
 
     def set_current_position(self, position_name: str):
-        """
-        @doc
-        Устанавливает текущую позицию для поиска файлов.
-
+        """Sets the current position for file searching.
+        
         Args:
-            position_name: Название позиции для поиска соответствующих файлов
+            position_name: The name of the position for finding corresponding files.
         """
         self._current_position = position_name
         logger.info(f"📋 Set current position: {position_name}")
@@ -502,21 +477,15 @@ class FilesManagerComponent:
         return None
 
     def _download_in_background_safe(self, profile_id: str, format_type: str):
-        """
-        @doc
-        Безопасное скачивание в background thread для избежания slot context errors.
 
+        """Safely downloads a file in a background thread to avoid slot context errors.
+        
         Args:
-            profile_id: ID профиля для скачивания
-            format_type: Формат файла
-
-        Examples:
-          python> files_manager._download_in_background_safe("123", "json")
-          python> # Скачивание запущено в background thread
+            profile_id: ID профиля для скачивания.
+            format_type: Формат файла.
         """
-
         def run_download():
-            """Запуск async download в отдельном thread pool."""
+            """Starts an async download in a separate thread pool."""
             try:
                 # Создаем новый event loop для этого thread
                 loop = asyncio.new_event_loop()
@@ -541,7 +510,7 @@ class FilesManagerComponent:
         )
 
     async def _async_download_file(self, profile_id: str, format_type: str):
-        """Async версия скачивания без UI уведомлений"""
+        """Asynchronously downloads a file without UI notifications."""
         try:
             download_key = f"{profile_id}_{format_type}"
             self.download_attempts[download_key] = (
@@ -683,17 +652,17 @@ class FilesManagerComponent:
         threading.Timer(delay, cleanup).start()
 
     async def download_multiple_files(self, profile_ids: list[str], format_type: str):
-        """
-        @doc
-        Скачивание нескольких файлов профилей.
-
+        """Downloads multiple profile files asynchronously.
+        
+        This function takes a list of profile IDs and a format type to download the
+        corresponding files.  It notifies the user about the download progress and
+        handles any errors that occur during the  download process. A brief pause is
+        introduced between downloads to manage the request rate.  Finally, it provides
+        a summary notification indicating the success or failure of the downloads.
+        
         Args:
-            profile_ids: Список ID профилей
-            format_type: Формат файлов
-
-        Examples:
-          python> await files_manager.download_multiple_files(["123", "456"], "json")
-          python> # Несколько JSON файлов скачано
+            profile_ids: A list of profile IDs to download.
+            format_type: The format of the files to be downloaded.
         """
         if not profile_ids:
             self._safe_notify("❌ Нет профилей для скачивания", "negative")
@@ -731,17 +700,7 @@ class FilesManagerComponent:
             )
 
     async def preview_markdown(self, profile_id: str):
-        """
-        @doc
-        Предпросмотр Markdown файла профиля.
-
-        Args:
-            profile_id: ID профиля для предпросмотра
-
-        Examples:
-          python> await files_manager.preview_markdown("profile123")
-          python> # Показан диалог с содержимым Markdown
-        """
+        """Displays a preview of the Markdown file for a given profile ID."""
         self._safe_notify("📥 Загрузка предпросмотра...", "info")
 
         try:
@@ -790,13 +749,14 @@ class FilesManagerComponent:
             self._safe_notify(f"❌ Ошибка предпросмотра: {str(e)}", "negative")
 
     async def cleanup_all_temp_files(self):
-        """
-        @doc
-        Немедленная очистка всех временных файлов.
-
-        Examples:
-          python> files_manager.cleanup_all_temp_files()
-          python> # Все временные файлы удалены
+        """Clean up all temporary files.
+        
+        This asynchronous function performs a comprehensive cleanup of all tracked
+        temporary files. It iterates through the list of `self.temp_files`, attempting
+        to delete each file if it exists, while logging the process. After cleaning  up
+        the temporary files, it calls the `_cleanup_managed_resources` method to
+        ensure that any associated resources are also cleaned up. Finally, it resets
+        the state by clearing `self.download_attempts` and `self.failed_downloads`.
         """
         logger.info("Starting comprehensive temp file cleanup")
         cleaned_count = 0
@@ -869,20 +829,14 @@ class FilesManagerComponent:
     # === Error Recovery and Resource Management Methods ===
 
     async def _safe_download_file(self, profile_id: str, format_type: str):
-        """
-        @doc
-        Execute file download with circuit breaker and retry protection.
-
+        """Download a file with error recovery and retry protection.
+        
         Args:
-            profile_id: ID of profile to download
-            format_type: File format ("json", "markdown", "docx")
-
+            profile_id: ID of profile to download.
+            format_type: File format ("json", "markdown", "docx").
+        
         Returns:
-            Tuple of (file_data, file_extension) or (None, None) if failed
-
-        Examples:
-          python> data, ext = await files_manager._safe_download_file("123", "json")
-          python> # File downloaded with error recovery protection
+            Tuple of (file_data, file_extension) or (None, None) if failed.
         """
         if not self.circuit_breaker or not self.retry_manager:
             # Fallback to direct call if no recovery infrastructure
@@ -902,20 +856,17 @@ class FilesManagerComponent:
             return None, None
 
     async def _direct_download_file(self, profile_id: str, format_type: str):
-        """
-        @doc
-        Direct file download without recovery mechanisms.
-
+        """Directly downloads a file in the specified format.
+        
+        This function retrieves a file based on the provided profile_id and
+        format_type.  It supports downloading files in JSON, Markdown, and DOCX formats
+        by calling  the appropriate methods from the api_client. If an unsupported
+        format is  specified, a ValueError is raised. Error handling is implemented to
+        log  any issues encountered during the download process.
+        
         Args:
-            profile_id: ID of profile to download
-            format_type: File format
-
-        Returns:
-            Tuple of (file_data, file_extension)
-
-        Examples:
-          python> data, ext = await files_manager._direct_download_file("123", "json")
-          python> # Direct API call made
+            profile_id: ID of profile to download.
+            format_type: File format.
         """
         try:
             if format_type == "json":
@@ -937,19 +888,16 @@ class FilesManagerComponent:
             raise
 
     def _should_retry_download_error(self, error: Exception) -> bool:
-        """
-        @doc
-        Determine if download error should trigger retry.
-
+        """Determine if download error should trigger retry.
+        
+        This function evaluates the provided error to decide whether a retry  of the
+        download operation is warranted. It first checks against a list  of permanent
+        errors that should not trigger a retry. If the error is  not permanent, it then
+        assesses if the error falls under conditions  that are typically retryable,
+        such as network issues or server errors.
+        
         Args:
             error: Exception from download operation
-
-        Returns:
-            True if should retry, False otherwise
-
-        Examples:
-          python> should_retry = files_manager._should_retry_download_error(TimeoutError())
-          python> print(should_retry)  # True
         """
         error_str = str(error).lower()
 
@@ -1001,17 +949,11 @@ class FilesManagerComponent:
         return should_retry
 
     async def _handle_download_failure(self, download_key: str, error_message: str):
-        """
-        @doc
-        Handle download failure with recovery coordination.
-
+        """Handle download failure and coordinate recovery efforts.
+        
         Args:
-            download_key: Unique key for the download operation
-            error_message: Error message from the failure
-
-        Examples:
-          python> await files_manager._handle_download_failure("profile123_json", "Network timeout")
-          python> # Failure handled with recovery coordination
+            download_key: Unique key for the download operation.
+            error_message: Error message from the failure.
         """
         self.failed_downloads.add(download_key)
         logger.error(f"Download failure for {download_key}: {error_message}")
@@ -1044,19 +986,20 @@ class FilesManagerComponent:
         await self._show_download_error_dialog(download_key, error_message)
 
     async def _show_download_error_dialog(self, download_key: str, error_message: str):
-        """
-        @doc
-        Show download error dialog with recovery options.
-
-        Args:
-            download_key: Key identifying the failed download
-            error_message: Technical error message
-
-        Examples:
-          python> await files_manager._show_download_error_dialog("profile123_json", "API timeout")
-          python> # Error dialog with recovery options shown
-        """
         # Parse download key to extract profile_id and format
+        """Show download error dialog with recovery options.
+        
+        This function displays a dialog to inform the user about a failed download,
+        providing a user-friendly error message and suggestions for recovery. It
+        parses the download_key to extract the profile_id and format type, and
+        retrieves the number of download attempts. The dialog includes technical
+        details about the error and offers action buttons for retrying the download,
+        trying an alternative format, or resetting the download state.
+        
+        Args:
+            download_key: Key identifying the failed download.
+            error_message: Technical error message.
+        """
         parts = download_key.split("_")
         if len(parts) >= 2:
             profile_id = parts[0]
@@ -1204,18 +1147,12 @@ class FilesManagerComponent:
             )
 
     async def _retry_download(self, dialog, profile_id: str, format_type: str):
-        """
-        @doc
-        Retry download with enhanced feedback.
-
+        """Retry the download process with user feedback.
+        
         Args:
-            dialog: Error dialog to close
-            profile_id: Profile ID to retry
-            format_type: File format to retry
-
-        Examples:
-          python> await files_manager._retry_download(dialog, "123", "json")
-          python> # Download retried with user feedback
+            dialog: Error dialog to close.
+            profile_id: Profile ID to retry.
+            format_type: File format to retry.
         """
         dialog.close()
 
@@ -1290,13 +1227,14 @@ class FilesManagerComponent:
         self._safe_notify("🧹 Состояние менеджера файлов сброшено", "info")
 
     async def _cleanup_managed_resources(self):
-        """
-        @doc
-        Clean up all managed resources to prevent leaks.
-
-        Examples:
-          python> await files_manager._cleanup_managed_resources()
-          python> # All managed resources cleaned up
+        """Clean up all managed resources to prevent leaks.
+        
+        This function cleans up all resources managed by the files manager. It checks
+        for an error recovery coordinator and iterates through the managed resources,
+        invoking the `cleanup` method on each resource if it exists. The cleanup tasks
+        are gathered and awaited to ensure all resources are properly cleaned up before
+        clearing the managed resources list. Any exceptions during the cleanup process
+        are logged for debugging purposes.
         """
         logger.debug("Cleaning up files manager managed resources")
 
@@ -1319,14 +1257,7 @@ class FilesManagerComponent:
             logger.error(f"Error during files manager resource cleanup: {e}")
 
     def _save_component_state(self):
-        """
-        @doc
-        Save current component state for recovery.
-
-        Examples:
-          python> files_manager._save_component_state()
-          python> # Current state saved for recovery
-        """
+        """Save the current component state for recovery."""
         if not self.error_recovery_coordinator:
             return
 
@@ -1347,16 +1278,10 @@ class FilesManagerComponent:
             logger.error(f"Failed to save files manager component state: {e}")
 
     async def _on_recovery_callback(self, recovered_state: dict):
-        """
-        @doc
-        Handle state recovery from error recovery coordinator.
-
+        """Handle state recovery for the files manager component.
+        
         Args:
-            recovered_state: Previously saved state data
-
-        Examples:
-          python> await files_manager._on_recovery_callback({"temp_files_count": 3})
-          python> # Files manager state recovered from coordinator
+            recovered_state (dict): Previously saved state data.
         """
         try:
             logger.info("Recovering files manager component state...")
@@ -1376,16 +1301,10 @@ class FilesManagerComponent:
             self._safe_notify("⚠️ Частичное восстановление менеджера файлов", "warning")
 
     def track_resource(self, resource):
-        """
-        @doc
-        Track a resource for automatic cleanup.
-
+        """Track a resource for automatic cleanup.
+        
         Args:
-            resource: Resource to track (should implement cleanup method)
-
-        Examples:
-          python> files_manager.track_resource(temp_file_resource)
-          python> # Resource tracked for automatic cleanup
+            resource: Resource to track (should implement cleanup method).
         """
         if hasattr(resource, "cleanup"):
             self.managed_resources.add(resource)
@@ -1403,16 +1322,7 @@ class FilesManagerComponent:
             logger.warning("Resource does not implement cleanup method")
 
     async def reset_component_state(self):
-        """
-        @doc
-        Reset component to clean state.
-
-        Used for manual recovery or when starting fresh.
-
-        Examples:
-          python> await files_manager.reset_component_state()
-          python> # Files manager reset to clean state
-        """
+        """Reset the component to a clean state."""
         logger.info("Resetting files manager component state")
 
         # Clean up all resources
@@ -1430,17 +1340,7 @@ class FilesManagerComponent:
         self._safe_notify("🔄 Менеджер файлов сброшен", "info")
 
     def get_download_status(self) -> Dict[str, Any]:
-        """
-        @doc
-        Получение статуса компонента скачивания.
-
-        Returns:
-            Dict[str, Any]: Статус компонента
-
-        Examples:
-          python> status = files_manager.get_download_status()
-          python> print(status["temp_files_count"])  # Количество временных файлов
-        """
+        """Retrieve the download status of the component."""
         return {
             "temp_files_count": len(self.temp_files),
             "is_downloading": bool(self.download_progress_dialog),

@@ -158,14 +158,7 @@ class ProfileViewerComponent:
                 self._render_empty_state()
 
     def _render_empty_state(self):
-        """
-        @doc
-        Рендеринг пустого состояния.
-
-        Examples:
-          python> viewer._render_empty_state()
-          python> # Показано пустое состояние
-        """
+        """Render the empty state UI."""
         with ui.card().classes("w-full p-8"):
             with ui.column().classes("items-center gap-4"):
                 ui.icon("preview", size="3rem").classes("text-grey-5")
@@ -175,14 +168,7 @@ class ProfileViewerComponent:
                 )
 
     def _render_profiles_list(self):
-        """
-        @doc
-        Рендеринг списка профилей с улучшенным UX дизайном.
-
-        Examples:
-          python> viewer._render_profiles_list()
-          python> # Отрендерен улучшенный список профилей
-        """
+        """Render a list of profiles with enhanced UX design."""
         ui.label(f"Найдено профилей: {len(self.profiles_list)}").classes("text-h6 mb-4")
 
         # Показываем до 10 профилей с улучшенным дизайном
@@ -190,23 +176,7 @@ class ProfileViewerComponent:
             self._render_enhanced_profile_card(profile)
 
     def _render_enhanced_profile_card(self, profile):
-        """
-        @doc
-        Рендеринг улучшенной карточки профиля с современным UX дизайном.
-
-        Реализует:
-        - Четкую визуальную иерархию
-        - Консолидированные действия
-        - Семантичное использование цветов и иконок
-        - Адаптивность для мобильных устройств
-
-        Args:
-            profile: Данные профиля для отображения
-
-        Examples:
-          python> viewer._render_enhanced_profile_card(profile_data)
-          python> # Отрендерена улучшенная карточка профиля
-        """
+        """Renders an enhanced profile card with modern UX design."""
         status = profile.get("status", "completed")
         position = profile.get(
             "position", profile.get("position_title", "Неизвестная должность")
@@ -258,16 +228,10 @@ class ProfileViewerComponent:
                             self._render_profile_download_menu(profile_id)
 
     def _render_status_indicator(self, status: str):
-        """
-        @doc
-        Рендеринг семантичного индикатора статуса профиля.
-
+        """Render a semantic status indicator for the profile.
+        
         Args:
-            status: Статус профиля
-
-        Examples:
-          python> viewer._render_status_indicator("completed")
-          python> # Отрендерен зеленый индикатор готовности
+            status: The status of the profile.
         """
         status_config = {
             "completed": {
@@ -303,16 +267,16 @@ class ProfileViewerComponent:
         )
 
     def _render_compact_department_path(self, department_path: str):
-        """
-        @doc
-        Компактное отображение пути департамента с адаптивностью.
-
+        """Renders a compact display of the department path with adaptability.
+        
+        This function takes a department path string and processes it to create a
+        breadcrumb-style display. It cleans and splits the path based on specific
+        delimiters, then determines how to present the path based on its length.  If
+        the path is short, it displays all parts; if long, it shows the first  and last
+        parts with ellipses in between for clarity.
+        
         Args:
-            department_path: Путь департамента
-
-        Examples:
-          python> viewer._render_compact_department_path("Департамент → Отдел → Группа")
-          python> # Отрендерен компактный путь департамента
+            department_path: The path of the department as a string.
         """
         if not department_path:
             return
@@ -342,17 +306,7 @@ class ProfileViewerComponent:
                 ).style("max-width: 300px").props(f'title="{" → ".join(path_parts)}"')
 
     def _render_profile_download_menu(self, profile_id: str):
-        """
-        @doc
-        Рендеринг компактного меню скачивания профиля.
-
-        Args:
-            profile_id: ID профиля для скачивания
-
-        Examples:
-          python> viewer._render_profile_download_menu("profile_123")
-          python> # Отрендерено меню скачивания
-        """
+        """Render a compact profile download menu."""
         with ui.dropdown_button("Скачать", icon="file_download").props(
             "outlined color=blue-grey size=sm"
         ).classes("min-w-[100px]"):
@@ -373,14 +327,7 @@ class ProfileViewerComponent:
             ).props("clickable")
 
     def _render_detailed_profile_view(self):
-        """
-        @doc
-        Рендеринг детального вида профиля с табированным интерфейсом.
-
-        Examples:
-          python> viewer._render_detailed_profile_view()
-          python> # Отрендерен детальный вид с табами
-        """
+        """Render a detailed profile view with a tabbed interface."""
         profile = self.current_profile
         if not profile:
             return
@@ -463,17 +410,7 @@ class ProfileViewerComponent:
                     )
 
     def _render_status_badge(self, profile: Dict[str, Any]):
-        """
-        @doc
-        Рендеринг badge статуса профиля.
-
-        Args:
-            profile: Данные профиля
-
-        Examples:
-          python> viewer._render_status_badge(profile_data)
-          python> # Отрендерен badge статуса
-        """
+        """Render a status badge for the profile."""
         status = profile.get("status", "unknown")
         status_config = {
             "completed": {"icon": "🟢", "color": "positive", "text": "Готов"},
@@ -490,14 +427,7 @@ class ProfileViewerComponent:
         )
 
     def _render_tab_interface(self):
-        """
-        @doc
-        Рендеринг табированного интерфейса с progressive disclosure.
-
-        Examples:
-          python> viewer._render_tab_interface()
-          python> # Отрендерен интерфейс с табами
-        """
+        """Renders a tabbed interface with progressive disclosure."""
         with ui.tabs().classes("w-full") as tabs:
             content_tab = ui.tab("content", label="📄 Содержание", icon="visibility")
 
@@ -569,13 +499,15 @@ class ProfileViewerComponent:
         self._render_profile_actions()
 
     def _render_versions_management(self):
-        """
-        @doc
-        Рендеринг управления версиями профиля.
-
-        Examples:
-          python> viewer._render_versions_management()
-          python> # Отрендерено управление версиями
+        """Render version management for the profile.
+        
+        This function displays the version management interface for the current
+        profile.  It checks the number of profiles in `self.profiles_list` to determine
+        whether to  show details for a single version or a list of multiple versions.
+        For a single  version, it presents the current version's details, including
+        version number,  creation date, and author. For multiple versions, it lists all
+        versions with  options to view or download each version, highlighting the
+        current version.
         """
         with ui.column().classes("w-full gap-4 p-4"):
             ui.label("🔄 Управление версиями").classes("text-h6 font-medium")
@@ -675,14 +607,7 @@ class ProfileViewerComponent:
                                     ).props("color=blue outlined dense")
 
     def _render_markdown_view(self):
-        """
-        @doc
-        Рендеринг Markdown просмотра профиля.
-
-        Examples:
-          python> viewer._render_markdown_view()
-          python> # Отрендерен Markdown просмотр
-        """
+        """Renders the Markdown view of the profile."""
         with ui.column().classes("w-full gap-4 p-4"):
             # Заголовок с действиями
             with ui.row().classes("w-full justify-between items-center mb-4"):
@@ -728,14 +653,7 @@ class ProfileViewerComponent:
                         )
 
     def _render_profile_actions(self):
-        """
-        @doc
-        Рендеринг действий для профиля с централизованным download center.
-
-        Examples:
-          python> viewer._render_profile_actions()
-          python> # Отрендерены действия профиля с download center
-        """
+        """Render profile actions with a centralized download center."""
         with ui.card_actions():
             with ui.column().classes("w-full gap-4"):
                 # Центр скачивания
@@ -756,16 +674,7 @@ class ProfileViewerComponent:
                     ).props("outlined")
 
     def _render_download_center(self):
-        """
-        @doc
-        Рендеринг централизованного центра скачивания файлов профиля.
-
-        Группирует все опции скачивания в одном месте с понятными описаниями.
-
-        Examples:
-          python> viewer._render_download_center()
-          python> # Отрендерен центр скачивания файлов
-        """
+        """Render the centralized file download center for the profile."""
         with ui.card().classes("w-full bg-blue-50 border-l-4 border-blue-500"):
             with ui.card_section():
                 with ui.row().classes("w-full items-center gap-3 mb-3"):
@@ -877,7 +786,7 @@ class ProfileViewerComponent:
     # Методы для обработки действий
 
     def _switch_to_version(self, profile: Dict[str, Any]):
-        """Переключение на другую версию профиля"""
+        """Switch to a different profile version."""
         self.current_profile = profile
         self._render_profile_content.refresh()
         ui.notify(
@@ -894,7 +803,7 @@ class ProfileViewerComponent:
             ui.notify("Невозможно скачать: нет ID профиля", type="negative")
 
     def _copy_markdown(self):
-        """Копирование Markdown в буфер обмена"""
+        """Copies Markdown content to the clipboard."""
         try:
             markdown_content = self._get_markdown_content()
             if markdown_content:
@@ -919,8 +828,8 @@ class ProfileViewerComponent:
             ui.notify(f"Ошибка копирования: {str(e)}", type="negative")
 
     def _get_markdown_content(self) -> str:
-        """Получение Markdown содержимого профиля"""
         # Пока возвращаем заглушку - будет реализовано позже
+        """Retrieve Markdown content for the current profile."""
         profile_id = self.current_profile.get("profile_id")
 
         # Проверяем кеш
@@ -937,7 +846,21 @@ class ProfileViewerComponent:
         return ""
 
     def _generate_markdown_from_json(self, json_data: Dict[str, Any]) -> str:
-        """Генерация Markdown из JSON данных профиля"""
+        """Generate Markdown from JSON profile data.
+        
+        This function constructs a Markdown representation of a job profile based on
+        the provided JSON data. It extracts various sections such as position title,
+        job summary, responsibility areas, responsibilities, professional skills, KPIs,
+        qualification requirements, required education, and required experience. Each
+        section is formatted appropriately, and the function handles different data
+        types and structures within the JSON input.
+        
+        Args:
+            json_data (Dict[str, Any]): A dictionary containing job profile information in JSON format.
+        
+        Returns:
+            str: The generated Markdown string representing the job profile.
+        """
         try:
             lines = []
 
@@ -1068,16 +991,7 @@ class ProfileViewerComponent:
             return f"# Ошибка генерации Markdown\n\nНе удалось сгенерировать Markdown: {str(e)}"
 
     def _show_profile_analysis(self):
-        """
-        @doc
-        Показ анализа профиля должности.
-
-        Будущая функция для глубокого анализа профиля с метриками и рекомендациями.
-
-        Examples:
-          python> viewer._show_profile_analysis()
-          python> # Показан анализ профиля
-        """
+        """Notify that profile analysis will be available in future versions."""
         ui.notify("🔍 Анализ профиля будет доступен в следующих версиях", type="info")
 
     def _compare_versions(self):
@@ -1099,11 +1013,18 @@ class ProfileViewerComponent:
             )
 
     def _show_all_versions(self):
-        """Переключение на таб версий"""
+        """Switch to the versions tab."""
         ui.notify("Переключение на таб управления версиями", type="info")
 
     def _previous_version(self):
-        """Переключение на предыдущую версию"""
+        """Switch to the previous profile version.
+        
+        This method checks if there are multiple profiles in the profiles_list.  If so,
+        it identifies the current profile's index and switches to the  previous profile
+        version if the current index is greater than zero.  The switching is handled by
+        the _switch_to_version method, which takes  the previous profile as an
+        argument.
+        """
         if len(self.profiles_list) > 1:
             current_index = next(
                 (
@@ -1131,37 +1052,27 @@ class ProfileViewerComponent:
                 self._switch_to_version(self.profiles_list[current_index + 1])
 
     def _show_versions_list(self):
-        """Возврат к списку версий"""
+        """Display the versions list."""
         self.show_detailed_view = False
         self._render_profile_content.refresh()
 
     def _close_detailed_view(self):
-        """
-        @doc
-        Закрытие детального вида профиля.
-
-        Examples:
-          python> viewer._close_detailed_view()
-          python> # Детальный вид закрыт
-        """
+        """Closes the detailed view of the profile."""
         self.show_detailed_view = False
         self.current_profile = None
         self._render_profile_content.refresh()
 
     def show_profile(self, profile_data: Dict[str, Any]):
-        """
-        @doc
-        Отображение профиля встроенно (синхронная версия).
-
-        Загружает и показывает детальную информацию о профиле.
-
+        """def show_profile(self, profile_data: Dict[str, Any]):
+        Display the profile synchronously.  This function loads and displays detailed
+        information about a profile.  It first validates the provided profile_data and
+        handles any errors  related to corrupted data. If the profile_data contains a
+        task_result,  it extracts the profile information and updates the UI
+        accordingly.  The function also manages the state for error recovery and
+        refreshes  the profile content in the UI.
+        
         Args:
-            profile_data: Данные профиля от GeneratorComponent или API
-
-        Examples:
-          python> viewer.show_profile({"profile_id": "123"})
-          python> # Показан детальный вид профиля
-        """
+            profile_data: Данные профиля от GeneratorComponent или API."""
         try:
             # Enhanced error detection and recovery
             if not self._validate_profile_data(profile_data):
@@ -1207,20 +1118,7 @@ class ProfileViewerComponent:
             self._handle_profile_error_sync("display_error", str(e), profile_data)
 
     def _adapt_generation_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        @doc
-        Адаптация результата генерации к формату отображения.
-
-        Args:
-            result: Результат генерации профиля
-
-        Returns:
-            Dict[str, Any]: Адаптированные данные для отображения
-
-        Examples:
-          python> adapted = viewer._adapt_generation_result(generation_result)
-          python> print(adapted["position_title"])
-        """
+        """Adapts the generation result to a display format."""
         profile = result.get("profile", {})
         metadata = result.get("metadata", {})
 
@@ -1242,17 +1140,7 @@ class ProfileViewerComponent:
         }
 
     def _render_profile_basic_info(self, profile_data: Dict[str, Any]):
-        """
-        @doc
-        Отображение базовой информации профиля.
-
-        Args:
-            profile_data: Данные профиля
-
-        Examples:
-          python> viewer._render_profile_basic_info(profile_data)
-          python> # Отрендерена секция основной информации
-        """
+        """Displays basic profile information."""
         with ui.expansion("📋 Основная информация", value=True).classes("w-full"):
             with ui.grid(columns="1fr 1fr").classes("gap-4 p-4"):
                 # Левая колонка
@@ -1364,18 +1252,16 @@ class ProfileViewerComponent:
                         )
 
     def _render_profile_content_section(self, json_data: Dict[str, Any]):
-        """
-        @doc
-        Отображение содержания профиля.
-
-        Показывает краткое описание, области ответственности и навыки.
-
+        """Render the content section of a profile.
+        
+        This function displays a structured overview of a profile, including a job
+        summary, responsibility areas, professional skills, and key performance
+        indicators (KPI). It processes the provided JSON data to extract and format
+        these details, ensuring that only a limited number of items are shown for each
+        category, with indications for any additional items.
+        
         Args:
-            json_data: JSON данные профиля
-
-        Examples:
-          python> viewer._render_profile_content_section(profile_json)
-          python> # Отрендерено содержимое профиля
+            json_data (Dict[str, Any]): JSON data containing profile information.
         """
         with ui.expansion("📄 Содержание профиля", value=False).classes("w-full"):
             with ui.column().classes("gap-4 p-4"):
@@ -1462,18 +1348,18 @@ class ProfileViewerComponent:
                                 ui.label(f"{i}. {str(kpi)}").classes("text-body1")
 
     def _render_profile_metadata(self, profile_data: Dict[str, Any]):
-        """
-        @doc
-        Отображение метаданных профиля.
-
-        Показывает информацию о генерации: время, токены, модель LLM.
-
+        """Render profile metadata for generation information.
+        
+        This function extracts and displays metadata related to the generation process,
+        including generation time, token usage, and model details. It organizes the
+        information into a user interface layout, presenting performance metrics and
+        technical details in a structured format.
+        
         Args:
-            profile_data: Данные профиля с метаданными
-
-        Examples:
-          python> viewer._render_profile_metadata(profile_data)
-          python> # Отрендерены метаданные генерации
+            profile_data (Dict[str, Any]): Profile data containing generation metadata.
+        
+        Returns:
+            None: This function does not return a value.
         """
         metadata = profile_data.get("generation_metadata") or profile_data.get(
             "metadata"
@@ -1527,19 +1413,13 @@ class ProfileViewerComponent:
                         )
 
     def _format_datetime(self, datetime_str: str) -> str:
-        """
-        @doc
-        Форматирование даты и времени для отображения.
-
+        """Format a date and time string in ISO format for display.
+        
         Args:
-            datetime_str: Строка с датой в ISO формате
-
+            datetime_str: A string containing the date in ISO format.
+        
         Returns:
-            str: Отформатированная дата
-
-        Examples:
-          python> formatted = viewer._format_datetime("2024-09-12T15:30:00Z")
-          python> print(formatted)  # "12.09.2024 15:30"
+            str: The formatted date.
         """
         if not datetime_str:
             return "Не указано"
@@ -1591,17 +1471,18 @@ class ProfileViewerComponent:
             ui.notify(f"❌ Ошибка подготовки скачивания: {str(e)}", type="negative")
 
     def show_profile_list(self, profiles_data):
-        """
-        @doc
-        Отображение списка профилей с поддержкой новой структуры данных.
-
+        """Display a list of profiles with support for a new data structure.
+        
+        This function processes the provided profiles_data, which can be either  a list
+        of profiles or a dictionary containing extended information.  It logs the type
+        and content of profiles_data, and based on the  structure, it determines how to
+        display the profiles. If the view mode  is set to "single", it immediately
+        shows the first profile. Otherwise,  it prepares to display multiple profiles
+        or a list view.
+        
         Args:
-            profiles_data: Может быть список профилей или словарь с расширенной информацией
-
-        Examples:
-          python> viewer.show_profile_list(profiles_list)
-          python> viewer.show_profile_list({'profiles': [...], 'status': {...}})
-          python> # Показан список профилей с кнопками просмотра
+            profiles_data: Can be a list of profiles or a dictionary with
+                extended information.
         """
         logger.info(
             f"🔥 DEBUG: ProfileViewerComponent.show_profile_list called with profiles_data type: {type(profiles_data)}"
@@ -1637,14 +1518,7 @@ class ProfileViewerComponent:
         self._render_profile_content.refresh()
 
     async def clear_display(self):
-        """
-        @doc
-        Очистка отображения профилей.
-
-        Examples:
-          python> await viewer.clear_display()
-          python> # Контейнер очищен
-        """
+        """Clears the display of profiles and resets related states."""
         await self._cleanup_resources()
 
         self.profiles_list = []
@@ -1663,19 +1537,13 @@ class ProfileViewerComponent:
     # === Error Recovery and Resource Management Methods ===
 
     def _validate_profile_data(self, profile_data: Any) -> bool:
-        """
-        @doc
-        Validate profile data structure to detect corruption.
-
-        Args:
-            profile_data: Profile data to validate
-
-        Returns:
-            True if data is valid, False if corrupted
-
-        Examples:
-          python> valid = viewer._validate_profile_data(profile_data)
-          python> print(valid)  # True if structure is correct
+        """Validate the structure of profile data to detect corruption.
+        
+        This function checks if the provided profile_data is a dictionary and
+        validates its structure based on the presence of the "task_result" key.  If
+        "task_result" exists, it further verifies that it contains a valid  "profile"
+        dictionary. If the structure does not meet the required  criteria, appropriate
+        warnings are logged.
         """
         if not isinstance(profile_data, dict):
             logger.warning("Profile data is not a dictionary")
@@ -1703,24 +1571,18 @@ class ProfileViewerComponent:
         return True
 
     def _handle_corrupted_data_sync(self, error_message: str, corrupted_data: Any):
-        """Синхронная версия обработки поврежденных данных"""
+        """Handles the synchronization of corrupted data."""
         logger.warning(f"Profile data corruption detected: {error_message}")
         self.is_corrupted = True
         self.current_profile = None
         self._render_profile_content.refresh()
 
     async def _handle_corrupted_data(self, error_message: str, corrupted_data: Any):
-        """
-        @doc
-        Handle corrupted profile data with recovery options.
-
+        """Handle corrupted profile data and initiate recovery options.
+        
         Args:
-            error_message: Description of the corruption
-            corrupted_data: The corrupted data for analysis
-
-        Examples:
-          python> await viewer._handle_corrupted_data("Invalid structure", bad_data)
-          python> # Corruption handled with recovery options
+            error_message: Description of the corruption.
+            corrupted_data: The corrupted data for analysis.
         """
         self.is_corrupted = True
         logger.error(f"Profile data corruption detected: {error_message}")
@@ -1750,7 +1612,7 @@ class ProfileViewerComponent:
     def _handle_profile_error_sync(
         self, operation: str, error_message: str, context_data: Any = None
     ):
-        """Синхронная версия обработки ошибок профиля"""
+        """Handles profile errors synchronously."""
         logger.error(f"Profile viewer error in {operation}: {error_message}")
         # Простая обработка ошибки без UI notifications
         self.is_corrupted = True
@@ -1799,18 +1661,7 @@ class ProfileViewerComponent:
         self._show_error_notification(operation, error_message)
 
     def _show_error_notification(self, operation: str, error_message: str):
-        """
-        @doc
-        Show user-friendly error notification.
-
-        Args:
-            operation: Failed operation name
-            error_message: Technical error message
-
-        Examples:
-          python> viewer._show_error_notification("load_profile", "Network timeout")
-          python> # User-friendly error shown
-        """
+        """Show user-friendly error notification based on the operation."""
         error_messages = {
             "display_error": "Не удалось отобразить профиль",
             "data_corruption": "Данные профиля повреждены",
@@ -1827,18 +1678,7 @@ class ProfileViewerComponent:
         )
 
     async def _show_corruption_dialog(self, error_message: str, corrupted_data: Any):
-        """
-        @doc
-        Show dialog for handling corrupted data.
-
-        Args:
-            error_message: Description of corruption
-            corrupted_data: The corrupted data
-
-        Examples:
-          python> await viewer._show_corruption_dialog("Parse error", bad_data)
-          python> # Corruption dialog with recovery options shown
-        """
+        """Show a dialog for handling corrupted data."""
         with ui.dialog() as dialog:
             with ui.card().classes("border-l-4 border-red-500 bg-red-50 min-w-[450px]"):
                 with ui.card_section().classes("py-6"):
@@ -1955,16 +1795,10 @@ class ProfileViewerComponent:
             ui.notify(f"❌ Ошибка восстановления: {str(e)}", type="negative")
 
     async def _reset_viewer_state(self, dialog):
-        """
-        @doc
-        Reset viewer to clean state after error.
-
+        """Reset the viewer to a clean state after an error.
+        
         Args:
             dialog: Dialog to close (can be None)
-
-        Examples:
-          python> await viewer._reset_viewer_state(dialog)
-          python> # Viewer reset to clean state
         """
         if dialog:
             dialog.close()
@@ -2051,16 +1885,10 @@ class ProfileViewerComponent:
             logger.error(f"Failed to save profile viewer component state: {e}")
 
     async def _on_recovery_callback(self, recovered_state: Dict[str, Any]):
-        """
-        @doc
-        Handle state recovery from error recovery coordinator.
-
+        """Handle state recovery from the error recovery coordinator.
+        
         Args:
-            recovered_state: Previously saved state data
-
-        Examples:
-          python> await viewer._on_recovery_callback({"current_profile": {...}})
-          python> # Viewer state recovered from coordinator
+            recovered_state (Dict[str, Any]): Previously saved state data.
         """
         try:
             logger.info("Recovering profile viewer component state...")
@@ -2095,15 +1923,13 @@ class ProfileViewerComponent:
             ui.notify("⚠️ Частичное восстановление просмотра профилей", type="warning")
 
     async def _cleanup_resources(self):
-        """
-        @doc
-        Clean up managed resources to prevent leaks.
-
-        Cleans up temporary files, cached data, and other resources.
-
-        Examples:
-          python> await viewer._cleanup_resources()
-          python> # All managed resources cleaned up
+        """Clean up managed resources to prevent leaks.
+        
+        This function cleans up temporary files, cached data, and other resources
+        managed by the profile viewer. It first checks for any resources that  require
+        cleanup through the error_recovery_coordinator and gathers  asynchronous
+        cleanup tasks. After executing these tasks, it clears  temporary caches and
+        loading states to ensure no residual data remains.
         """
         logger.debug("Cleaning up profile viewer resources")
 
@@ -2133,17 +1959,7 @@ class ProfileViewerComponent:
             logger.error(f"Error during resource cleanup: {e}")
 
     def track_resource(self, resource):
-        """
-        @doc
-        Track a resource for automatic cleanup.
-
-        Args:
-            resource: Resource to track (should implement cleanup method)
-
-        Examples:
-          python> viewer.track_resource(temp_file_resource)
-          python> # Resource tracked for automatic cleanup
-        """
+        """Track a resource for automatic cleanup."""
         if hasattr(resource, "cleanup"):
             self.managed_resources.add(resource)
 
@@ -2160,16 +1976,7 @@ class ProfileViewerComponent:
             logger.warning("Resource does not implement cleanup method")
 
     async def reset_component_state(self):
-        """
-        @doc
-        Reset component to clean state.
-
-        Used for manual recovery or when starting fresh.
-
-        Examples:
-          python> await viewer.reset_component_state()
-          python> # Viewer reset to clean state
-        """
+        """Reset the component to a clean state."""
         logger.info("Resetting profile viewer component state")
 
         # Clean up resources
