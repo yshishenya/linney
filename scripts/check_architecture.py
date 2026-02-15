@@ -20,7 +20,15 @@ from pathlib import Path
 
 
 def run_analysis() -> tuple[bool, dict]:
-    """Run the circular dependency analysis and return results."""
+    """Run the circular dependency analysis and return results.
+    
+    This function executes a subprocess to run the script
+    "analyze_circular_dependencies.py" located in the parent  directory of the
+    current file. It captures the output and  parses it to extract the number of
+    circular dependencies  and architectural violations. The function returns a
+    tuple  indicating whether the analysis is clean and a dictionary  containing
+    the extracted metrics and the subprocess output.
+    """
     try:
         result = subprocess.run([
             sys.executable, 
@@ -50,7 +58,15 @@ def run_analysis() -> tuple[bool, dict]:
 
 
 def main():
-    """Main function."""
+    """Run the main analysis of the backend architecture.
+    
+    This function checks the backend architecture by running an analysis  and
+    reporting on any circular dependencies or architectural violations  found. It
+    utilizes the `run_analysis` function to perform the analysis  and processes the
+    results to provide feedback to the user. The output  varies based on whether
+    issues are detected and can be verbose if  specified in the command line
+    arguments.
+    """
     verbose = '--verbose' in sys.argv or '-v' in sys.argv
     
     print("🔍 Checking backend architecture...")

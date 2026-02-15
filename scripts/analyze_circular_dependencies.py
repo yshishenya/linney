@@ -60,7 +60,7 @@ class ImportVisitor(ast.NodeVisitor):
         self.imports: List[ImportInfo] = []
         
     def visit_Import(self, node: ast.Import):
-        """Visit regular import statements."""
+        """Visit regular import statements and collect import information."""
         for alias in node.names:
             self.imports.append(ImportInfo(
                 module=alias.name,
@@ -126,7 +126,21 @@ class CircularDependencyAnalyzer:
             return str(file_path)
     
     def resolve_import_module(self, import_info: ImportInfo, current_module: str) -> Optional[str]:
-        """Resolve import to actual module path."""
+        """Resolve import to actual module path.
+        
+        This function determines the actual module path based on the provided  import
+        information and the current module context. It handles both  relative and
+        absolute imports, adjusting the module path according to  the specified import
+        level. For relative imports, it constructs the  target module path by
+        manipulating the current module's parts, while  for absolute imports, it checks
+        if the module starts with 'backend.'  or is a backend-relative import.
+        
+        Args:
+            import_info (ImportInfo): Information about the import, including
+                whether it is relative and the module name.
+            current_module (str): The name of the current module from which
+                the import is being resolved.
+        """
         if import_info.is_relative:
             # Handle relative imports
             current_parts = current_module.split('.')
@@ -173,7 +187,7 @@ class CircularDependencyAnalyzer:
             return []
     
     def analyze_file(self, file_path: Path):
-        """Analyze a single Python file for imports."""
+        """Analyze a single Python file for its imports and build a dependency graph."""
         module_name = self.normalize_module_path(file_path)
         imports = self.extract_imports(file_path)
         
@@ -192,6 +206,7 @@ class CircularDependencyAnalyzer:
         cycles = []
         
         def dfs(node: str, path: List[str]) -> bool:
+            """Performs a depth-first search to detect cycles in a graph."""
             if node in rec_stack:
                 # Found a cycle
                 cycle_start = path.index(node)
@@ -228,7 +243,15 @@ class CircularDependencyAnalyzer:
         return None
     
     def check_architectural_violations(self):
-        """Check for violations of architectural layer rules."""
+        """Check for violations of architectural layer rules.
+        
+        This function iterates through the dependency graph to identify any
+        architectural violations based on defined layer rules. For each module,  it
+        retrieves its layer and checks the layers of its dependencies. If a
+        dependency's layer is not allowed to be imported by the module's layer,  an
+        ArchitecturalViolation is recorded, detailing the violator, target,  and the
+        nature of the violation.
+        """
         self.architectural_violations = []
         
         for module, dependencies in self.dependency_graph.items():
@@ -255,7 +278,7 @@ class CircularDependencyAnalyzer:
                         ))
     
     def analyze(self):
-        """Run the complete analysis."""
+        """Run the complete analysis of the backend architecture."""
         print(f"Analyzing backend architecture in {self.backend_path}")
         
         # Find all Python files
@@ -282,7 +305,18 @@ class CircularDependencyAnalyzer:
         print(f"Found {len(self.architectural_violations)} architectural violations")
     
     def get_import_analysis(self) -> Dict[str, Any]:
-        """Get detailed import analysis statistics."""
+        """Get detailed import analysis statistics.
+        
+        This function analyzes the dependency graph to gather statistics on module
+        imports. It counts the most imported and most importing modules, identifies
+        external dependencies, and checks for modules that only have internal
+        dependencies. The results are compiled into a dictionary containing these
+        statistics.
+        
+        Returns:
+            Dict[str, Any]: A dictionary with keys for most imported modules, most importing modules,
+                external dependencies, internal dependencies only, and dependency depth.
+        """
         stats = {
             'most_imported_modules': {},
             'most_importing_modules': {},
@@ -315,7 +349,21 @@ class CircularDependencyAnalyzer:
         return stats
 
     def generate_report(self) -> str:
-        """Generate a comprehensive analysis report."""
+        """Generate a comprehensive analysis report of the project's dependencies.
+        
+        This function constructs a detailed report that includes circular dependency
+        analysis, architectural violations, and import statistics. It aggregates data
+        from various sources, including `self.get_import_analysis()`, and formats the
+        findings into a structured output. The report covers total modules analyzed,
+        dependencies, and highlights any architectural issues, providing insights into
+        the project's structure and potential problems.
+        
+        Args:
+            self: The instance of the class containing the report generation logic.
+        
+        Returns:
+            str: A formatted string containing the analysis report.
+        """
         report = []
         report.append("="*80)
         report.append("CIRCULAR DEPENDENCY ANALYSIS REPORT")
@@ -427,7 +475,17 @@ class CircularDependencyAnalyzer:
         return "\n".join(report)
     
     def export_json(self, output_path: str):
-        """Export analysis results to JSON format."""
+        """Export analysis results to JSON format.
+        
+        This function gathers various analysis results, including the analysis date,
+        backend path, summary statistics, circular dependencies, architectural
+        violations,  and the dependency graph. It then serializes this data into a JSON
+        format and  writes it to the specified output_path. The function ensures that
+        the output is  properly formatted and encoded in UTF-8.
+        
+        Args:
+            output_path (str): The file path where the JSON data will be saved.
+        """
         data = {
             "analysis_date": datetime.now().isoformat(),
             "backend_path": str(self.backend_path),
@@ -472,7 +530,15 @@ class CircularDependencyAnalyzer:
 
 
 def main():
-    """Main execution function."""
+    """Main execution function for analyzing circular dependencies.
+    
+    This function checks for the existence of a specified backend path,
+    initializes a CircularDependencyAnalyzer with that path, and performs  an
+    analysis. It generates a report in both text and JSON formats,  saving them to
+    predefined locations. The function also prints the  report and the paths where
+    the reports are saved. It returns a  non-zero value if any circular
+    dependencies or architectural  violations are found during the analysis.
+    """
     if len(sys.argv) > 1:
         backend_path = sys.argv[1]
     else:
