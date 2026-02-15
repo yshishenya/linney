@@ -458,8 +458,8 @@ class APIClient:
                 return False
 
     def _clear_expired_token(self):
-        """Очищаем истекший токен из всех хранилищ"""
         # Используем общую логику очистки, но не трогаем remember_me
+        """Clears expired tokens from all storage."""
         remember_me_backup = self._remember_me
         self._clear_all_tokens()
         self._remember_me = remember_me_backup
@@ -562,17 +562,15 @@ class APIClient:
             logger.debug(f"Could not clear token storages: {e}")
 
     async def validate_token(self, token: Optional[str] = None) -> bool:
+
+        """Validate the provided token for authentication.
+        
+        This function checks the validity of a given token by sending a request  to the
+        backend API. If a new token is provided, it temporarily replaces  the current
+        access token during the validation process. The function  returns True if the
+        token is valid and False if an APIError occurs.  Finally, it restores the old
+        token if a new one was provided.
         """
-        @doc
-        Проверка валидности токена.
-
-        Отправляет запрос на backend для проверки действительности токена.
-
-        Examples:
-          python> is_valid = await client.validate_token()
-          python> if not is_valid: print("Need to login again")
-        """
-
         if token:
             old_token = self._access_token
             self._access_token = token
