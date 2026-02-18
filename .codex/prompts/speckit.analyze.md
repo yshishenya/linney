@@ -1,6 +1,6 @@
 ---
 # managed-by: sdd-workflow-kit
-# kit-version: 0.2.0
+# kit-version: 0.2.2
 # template: speckit/commands/analyze.md
 description: Perform a non-destructive cross-artifact consistency and quality analysis across spec.md, plan.md, and tasks.md after task generation.
 ---

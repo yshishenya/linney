@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# managed-by: sdd-workflow-kit (kit-version: 0.2.0) (template: speckit/scripts/bash/setup-plan.sh)
+# managed-by: sdd-workflow-kit (kit-version: 0.2.2) (template: speckit/scripts/bash/setup-plan.sh)
 
 set -e
 

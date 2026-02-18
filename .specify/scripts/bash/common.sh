@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# managed-by: sdd-workflow-kit (kit-version: 0.2.0) (template: speckit/scripts/bash/common.sh)
+# managed-by: sdd-workflow-kit (kit-version: 0.2.2) (template: speckit/scripts/bash/common.sh)
 # Common functions and variables for all scripts
 
 # Get repository root, with fallback for non-git repositories

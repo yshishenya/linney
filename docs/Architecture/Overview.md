@@ -1,6 +1,6 @@
 <!--
 managed-by: sdd-workflow-kit
-kit-version: 0.2.0
+kit-version: 0.2.2
 template: docs/templates/Architecture__Overview.md.tmpl
 -->
 

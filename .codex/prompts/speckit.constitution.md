@@ -1,6 +1,6 @@
 ---
 # managed-by: sdd-workflow-kit
-# kit-version: 0.2.0
+# kit-version: 0.2.2
 # template: speckit/commands/constitution.md
 description: Create or update the project constitution from interactive or provided principle inputs, ensuring all dependent templates stay in sync.
 handoffs: 

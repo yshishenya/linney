@@ -1,6 +1,6 @@
 ---
 # managed-by: sdd-workflow-kit
-# kit-version: 0.2.0
+# kit-version: 0.2.2
 # template: speckit/commands/checklist.md
 description: Generate a custom checklist for the current feature based on user requirements.
 ---

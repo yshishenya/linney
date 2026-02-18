@@ -1,6 +1,6 @@
 ---
 # managed-by: sdd-workflow-kit
-# kit-version: 0.2.0
+# kit-version: 0.2.2
 # template: speckit/commands/implement.md
 description: Execute the implementation plan by processing and executing all tasks defined in tasks.md
 ---
