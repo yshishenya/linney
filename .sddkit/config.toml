@@ -1,0 +1,46 @@
+[sddkit]
+locale = "en"
+safe_mode = true
+profile = "speckit"
+
+[project]
+name = "linney"
+integration_branch = "main"
+is_fork = false
+upstream_project = "Open WebUI"
+
+[paths]
+docs_root = "docs"
+specs_root = "specs"
+memory_bank_root = "meta/memory_bank"
+meta_tools_root = "meta/tools"
+meta_sdd_root = "meta/sdd"
+codex_root = ".codex"
+
+[manage]
+agents_md = false
+github_workflow = true
+docs_scaffold = true
+specs_scaffold = false
+speckit = true
+memory_bank = false
+meta_tools = false
+meta_sdd = false
+codex_scaffold = false
+
+[speckit]
+agent = "codex"
+script_variant = "sh"
+
+[skills]
+default_pack = "codex"
+default_install_to = "project"
+
+[github]
+kit_path = ".tooling/sdd-workflow-kit"
+config = ".sddkit/config.toml"
+fail_on_missing_config = false
+
+[detection]
+languages = "python"
+package_managers = "pip"

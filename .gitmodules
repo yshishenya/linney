@@ -1,0 +1,3 @@
+[submodule ".tooling/sdd-workflow-kit"]
+	path = .tooling/sdd-workflow-kit
+	url = git@github.com:yshishenya/sdd-workflow-kit.git
